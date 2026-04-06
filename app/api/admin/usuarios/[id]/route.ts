@@ -71,7 +71,7 @@ export async function PATCH(
         )
       }
       // Eliminar sitios del usuario primero
-      await db.delete(sitios).where(eq(sitios.usuarioId, userId))
+      await db.delete(sitios).where(eq(sitios.userId, userId))
       // Eliminar usuario
       await db.delete(usuarios).where(eq(usuarios.id, userId))
       return NextResponse.json({ ok: true, eliminado: true })
