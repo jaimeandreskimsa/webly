@@ -127,11 +127,12 @@ export function StepPago({ datos, userId, onError, onLoading }: Props) {
         }),
       })
 
+      const dataPago = await resPago.json().catch(() => ({}))
       if (!resPago.ok) {
-        throw new Error('Error al procesar el pago')
+        throw new Error(dataPago.error || 'Error al procesar el pago')
       }
 
-      const { checkoutUrl } = await resPago.json()
+      const { checkoutUrl } = dataPago
 
       // 3. Redirigir a MercadoPago
       window.location.href = checkoutUrl
