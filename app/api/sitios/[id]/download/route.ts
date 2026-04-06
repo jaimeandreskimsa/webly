@@ -46,14 +46,14 @@ export async function GET(
   zip.file('index.html', version.htmlCompleto)
   zip.file('README.txt', `
 Sitio web de ${sitio.nombre}
-Generado con Webtory (webtory.cl)
+Generado con WeblyNow (weblynow.cl)
 Versión: ${version.numeroVersion}
 Fecha: ${new Date().toLocaleDateString('es-CL')}
 
 INSTRUCCIONES:
 1. Sube el archivo index.html a tu hosting
 2. Asegúrate de que sea el archivo principal
-3. Para soporte: soporte@webtory.cl
+3. Para soporte: soporte@weblynow.cl
 `)
 
   const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })

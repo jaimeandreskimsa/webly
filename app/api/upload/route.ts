@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const result = await new Promise<any>((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
-          folder: `webtory/${session.user!.id}/${tipo}`,
+          folder: `weblynow/${session.user!.id}/${tipo}`,
           resource_type: 'image',
           transformation: tipo === 'logo'
             ? [{ width: 400, height: 200, crop: 'fit' }]

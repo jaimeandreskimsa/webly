@@ -148,7 +148,7 @@ const testimonios = [
   {
     nombre: 'Rodrigo Campos',
     cargo: 'CEO, Constructora RC',
-    texto: 'Llevaba meses postergando el sitio web. Con Webtory lo resolví en una tarde. El resultado superó mis expectativas.',
+    texto: 'Llevaba meses postergando el sitio web. Con WeblyNow lo resolví en una tarde. El resultado superó mis expectativas.',
     stars: 5,
     avatar: 'RC',
   },
@@ -178,7 +178,7 @@ function Navbar() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
             <Zap className="w-4 h-4 text-white" />
           </div>
-          <span className="text-lg font-bold gradient-text">Webtory</span>
+          <span className="text-lg font-bold gradient-text">WeblyNow</span>
         </div>
 
         <div className="hidden md:flex items-center gap-8">
@@ -486,7 +486,7 @@ function CTA() {
               <span className="gradient-text">estar online hoy</span>
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
-              Más de 500 empresas ya tienen su sitio web creado con Webtory.
+              Más de 500 empresas ya tienen su sitio web creado con WeblyNow.
               La tuya puede ser la próxima en 5 minutos.
             </p>
             <Link
@@ -512,10 +512,10 @@ function Footer() {
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
               <Zap className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-bold gradient-text">Webtory</span>
+            <span className="font-bold gradient-text">WeblyNow</span>
           </div>
           <p className="text-muted-foreground text-sm">
-            © 2026 Webtory · Todos los derechos reservados · Chile
+            © 2026 WeblyNow · Todos los derechos reservados · Chile
           </p>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#" className="hover:text-white transition-colors">Términos</a>

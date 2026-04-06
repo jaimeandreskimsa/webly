@@ -264,7 +264,7 @@ function SeccionIntegraciones() {
           <ol className="list-decimal list-inside space-y-0.5">
             <li>Ingresa a <span className="text-white/70">vercel.com</span> → tu avatar → <strong>Settings</strong></li>
             <li>Ve a <strong>Tokens</strong> → <strong>Create Token</strong></li>
-            <li>Dale un nombre (ej: <em>WEBTORY</em>) y scope <strong>Full Account</strong></li>
+            <li>Dale un nombre (ej: <em>WEBLYNOW</em>) y scope <strong>Full Account</strong></li>
             <li>Copia el token y pégalo aquí</li>
           </ol>
           <a

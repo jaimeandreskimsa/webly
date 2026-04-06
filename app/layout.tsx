@@ -9,12 +9,12 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Webtory — Crea tu sitio web con IA en minutos',
+  title: 'WeblyNow — Crea tu sitio web con IA en minutos',
   description:
     'Genera un sitio web profesional con inteligencia artificial. Ingresa el contenido de tu negocio y obtén un sitio listo para publicar en menos de 5 minutos.',
   keywords: ['sitio web', 'IA', 'inteligencia artificial', 'crear web', 'diseño web', 'Chile'],
   openGraph: {
-    title: 'Webtory — Crea tu sitio web con IA',
+    title: 'WeblyNow — Crea tu sitio web con IA',
     description: 'Tu sitio web profesional en 5 minutos con IA',
     type: 'website',
   },

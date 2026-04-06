@@ -384,7 +384,7 @@ export default function ConfiguracionAdminPage({ defaultPrompts }: { defaultProm
                   <ol className="text-xs text-slate-400 space-y-1.5 list-decimal list-inside leading-relaxed">
                     <li>Entra a <a href="https://vercel.com/account/tokens" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline hover:text-blue-300">vercel.com/account/tokens</a></li>
                     <li>Haz clic en <strong className="text-white">Create Token</strong></li>
-                    <li>Ponle un nombre (ej: <code className="bg-white/10 px-1 rounded">webtory-system</code>)</li>
+                    <li>Ponle un nombre (ej: <code className="bg-white/10 px-1 rounded">weblynow-system</code>)</li>
                     <li>Scope: <strong className="text-white">Full Account</strong></li>
                     <li>Expiration: <strong className="text-white">No Expiration</strong></li>
                     <li>Copia el token generado y pégalo abajo</li>
@@ -689,9 +689,9 @@ export default function ConfiguracionAdminPage({ defaultPrompts }: { defaultProm
             <div className="space-y-4">
               <Field
                 label="Nombre de la app"
-                value={val('nombre_app', 'Webtory')}
+                value={val('nombre_app', 'WeblyNow')}
                 onChange={v => set('nombre_app', v)}
-                placeholder="Webtory"
+                placeholder="WeblyNow"
               />
               <Field
                 label="Tagline / Slogan"
@@ -703,7 +703,7 @@ export default function ConfiguracionAdminPage({ defaultPrompts }: { defaultProm
                 label="Email de soporte"
                 value={val('email_soporte', '')}
                 onChange={v => set('email_soporte', v)}
-                placeholder="soporte@webtory.com"
+                placeholder="soporte@weblynow.com"
                 type="email"
               />
             </div>
@@ -712,7 +712,7 @@ export default function ConfiguracionAdminPage({ defaultPrompts }: { defaultProm
                 saving={saving}
                 saved={savedKey === 'general-info'}
                 onClick={() => save([
-                  { clave: 'nombre_app', valor: val('nombre_app', 'Webtory'), tipo: 'string' },
+                  { clave: 'nombre_app', valor: val('nombre_app', 'WeblyNow'), tipo: 'string' },
                   { clave: 'tagline', valor: val('tagline', ''), tipo: 'string' },
                   { clave: 'email_soporte', valor: val('email_soporte', ''), tipo: 'string' },
                 ], 'general-info')}

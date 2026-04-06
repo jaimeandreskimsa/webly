@@ -44,7 +44,7 @@ export function Sidebar({ user }: SidebarProps) {
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center glow-purple">
             <Zap className="w-4.5 h-4.5 text-white" />
           </div>
-          <span className="text-lg font-black gradient-text">Webtory</span>
+          <span className="text-lg font-black gradient-text">WeblyNow</span>
         </Link>
       </div>
 

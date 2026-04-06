@@ -49,7 +49,7 @@ export default function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
               <Zap className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-black gradient-text">Webtory</span>
+            <span className="text-2xl font-black gradient-text">WeblyNow</span>
           </Link>
           <h1 className="text-2xl font-bold mb-2">Bienvenido de vuelta</h1>
           <p className="text-muted-foreground text-sm">Ingresa a tu cuenta para continuar</p>

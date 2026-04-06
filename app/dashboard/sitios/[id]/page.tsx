@@ -79,7 +79,7 @@ export default async function SitioPage({
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="bg-white/5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground text-center">
-                    {sitio.deployUrl || `preview · ${sitio.nombre.toLowerCase().replace(/\s/g, '-')}.webtory.cl`}
+                    {sitio.deployUrl || `preview · ${sitio.nombre.toLowerCase().replace(/\s/g, '-')}.weblynow.cl`}
                   </div>
                 </div>
                 {sitio.deployUrl && (

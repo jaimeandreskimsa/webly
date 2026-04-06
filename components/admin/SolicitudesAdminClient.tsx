@@ -149,7 +149,7 @@ export function SolicitudesAdminClient({ solicitudes: inicial }: { solicitudes: 
           {!s.atendida && (
             <div className="mt-4 flex items-center gap-3">
               <a
-                href={`mailto:${s.usuarioEmail}?subject=Ayuda con Vercel y dominio - Webtory&body=Hola ${s.usuarioNombre},%0D%0A%0D%0ARecibimos tu solicitud de ayuda para configurar Vercel y tu dominio.%0D%0A%0D%0ASaludos,%0D%0AEquipo Webtory`}
+                href={`mailto:${s.usuarioEmail}?subject=Ayuda con Vercel y dominio - WeblyNow&body=Hola ${s.usuarioNombre},%0D%0A%0D%0ARecibimos tu solicitud de ayuda para configurar Vercel y tu dominio.%0D%0A%0D%0ASaludos,%0D%0AEquipo WeblyNow`}
                 onClick={() => accion(s.id, 'marcar_leida')}
                 className="flex items-center gap-1.5 text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
               >

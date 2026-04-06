@@ -86,7 +86,7 @@ function generarHTMLMock(datos: DatosWizard): ResultadoGeneracion {
     ${datos.email ? `<p style="font-size:1.1rem;margin:8px 0;">✉️ ${datos.email}</p>` : ''}
     ${datos.horario ? `<p style="color:#aaa;font-size:0.9rem;margin-top:16px;">${datos.horario}</p>` : ''}
   </section>
-  <footer>© ${new Date().getFullYear()} ${datos.nombreEmpresa || 'Tu Empresa'}. Generado con Webtory.</footer>
+  <footer>© ${new Date().getFullYear()} ${datos.nombreEmpresa || 'Tu Empresa'}. Generado con WeblyNow.</footer>
 </body>
 </html>`
   return { html, tokensUsados: 0, modeloUsado: 'mock-dev' }

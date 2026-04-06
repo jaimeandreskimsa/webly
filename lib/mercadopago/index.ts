@@ -25,8 +25,8 @@ export async function crearPreferencia(params: CrearPreferenciaParams) {
     body: {
       items: [
         {
-          id: `webtory-${params.plan}-${params.sitioId}`,
-          title: `Webtory — Plan ${planNombre}`,
+          id: `weblynow-${params.plan}-${params.sitioId}`,
+          title: `WeblyNow — Plan ${planNombre}`,
           description: `Sitio web con IA para ${params.nombreEmpresa}`,
           quantity: 1,
           currency_id: 'CLP',
@@ -51,7 +51,7 @@ export async function crearPreferencia(params: CrearPreferenciaParams) {
         tipo: params.tipo || 'nuevo_sitio',
       }),
       notification_url: `${appUrl}/api/pagos/webhook`,
-      statement_descriptor: 'WEBTORY',
+      statement_descriptor: 'WEBLYNOW',
     },
   })
 

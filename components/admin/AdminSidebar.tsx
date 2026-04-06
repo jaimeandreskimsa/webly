@@ -50,7 +50,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
             <Shield className="w-4 h-4 text-white" />
           </div>
           <div>
-            <span className="text-sm font-black text-white">Webtory</span>
+            <span className="text-sm font-black text-white">WeblyNow</span>
             <div className="text-xs text-red-400 font-semibold tracking-widest">ADMIN</div>
           </div>
         </Link>

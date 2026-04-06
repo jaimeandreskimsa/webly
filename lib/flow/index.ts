@@ -162,7 +162,7 @@ export async function crearPagoPlan(params: PlanPagoParams): Promise<{ checkoutU
     apiKey,
     secretKey,
     commerceOrder: `${params.sitioId}|${params.userId}|${params.plan}|${params.tipo || 'nuevo_sitio'}`,
-    subject: `Webtory — Plan ${planNombre} para ${params.nombreEmpresa}`,
+    subject: `WeblyNow — Plan ${planNombre} para ${params.nombreEmpresa}`,
     amount: monto,
     email: params.email,
     urlConfirmation: `${appUrl}/api/pagos/webhook`,
