@@ -172,7 +172,7 @@ const testimonios = [
 
 function Navbar() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#080B14] border-b border-white/10">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
@@ -518,9 +518,8 @@ function Footer() {
             © 2026 WeblyNow · Todos los derechos reservados · Chile
           </p>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-white transition-colors">Términos</a>
-            <a href="#" className="hover:text-white transition-colors">Privacidad</a>
-            <a href="#" className="hover:text-white transition-colors">Contacto</a>
+            <a href="/terminos" className="hover:text-white transition-colors">Términos</a>
+            <a href="/privacidad" className="hover:text-white transition-colors">Privacidad</a>
           </div>
         </div>
       </div>
