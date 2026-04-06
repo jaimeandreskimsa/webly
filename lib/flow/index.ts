@@ -158,10 +158,16 @@ export async function crearPagoPlan(params: PlanPagoParams): Promise<{ checkoutU
     ? `${appUrl}/dashboard/sitios/${params.sitioId}?plan_cambiado=1`
     : `${appUrl}/dashboard/sitios/${params.sitioId}/generando`
 
+  // Flow limita commerceOrder a 45 chars — usar primeros 8 chars de cada UUID + plan
+  const shortSitio = params.sitioId.replace(/-/g, '').slice(0, 10)
+  const shortUser  = params.userId.replace(/-/g, '').slice(0, 8)
+  const shortTipo  = (params.tipo || 'nuevo_sitio') === 'nuevo_sitio' ? 'ns' : 'cp'
+  const commerceOrder = `${shortSitio}${shortUser}${params.plan}${shortTipo}`.slice(0, 45)
+
   const result = await crearPagoFlow({
     apiKey,
     secretKey,
-    commerceOrder: `${params.sitioId}|${params.userId}|${params.plan}|${params.tipo || 'nuevo_sitio'}`,
+    commerceOrder,
     subject: `WeblyNow — Plan ${planNombre} para ${params.nombreEmpresa}`,
     amount: monto,
     email: params.email,
