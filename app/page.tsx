@@ -1,8 +1,9 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   Zap, Globe, Sparkles, Shield, ArrowRight, Check,
   Star, Rocket, Code2, Palette, BarChart3, MessageSquare,
-  ChevronRight, Play, Building2
+  ChevronRight, Play, Building2, ExternalLink
 } from 'lucide-react'
 
 // ─── Pricing Data ─────────────────────────────────────────────────────────────
@@ -428,6 +429,139 @@ function Planes() {
   )
 }
 
+// ─── Portfolio ───────────────────────────────────────────────────────────────
+
+const sitiosPortfolio = [
+  {
+    nombre: 'CódigoSafe',
+    descripcion: 'Empresa de ciberseguridad y soluciones digitales',
+    url: 'https://codigosafe.cl',
+    tag: 'Ciberseguridad',
+    color: 'from-cyan-500/20 to-blue-500/20',
+    border: 'border-cyan-500/30',
+    tagColor: 'bg-cyan-500/20 text-cyan-300',
+  },
+  {
+    nombre: 'Building Manager Chile',
+    descripcion: 'Servicios profesionales de administración de edificios',
+    url: 'https://buildingmanagerchile.cl',
+    tag: 'Administración',
+    color: 'from-amber-500/20 to-orange-500/20',
+    border: 'border-amber-500/30',
+    tagColor: 'bg-amber-500/20 text-amber-300',
+  },
+  {
+    nombre: 'Kimsa Software',
+    descripcion: 'Fábrica de software y desarrollo tecnológico a medida',
+    url: 'https://kimsa.io',
+    tag: 'Software',
+    color: 'from-violet-500/20 to-purple-500/20',
+    border: 'border-violet-500/30',
+    tagColor: 'bg-violet-500/20 text-violet-300',
+  },
+  {
+    nombre: 'Jaime Gómez',
+    descripcion: 'Portfolio profesional de desarrollador full stack',
+    url: 'https://jaimegomez.work',
+    tag: 'Portfolio',
+    color: 'from-emerald-500/20 to-teal-500/20',
+    border: 'border-emerald-500/30',
+    tagColor: 'bg-emerald-500/20 text-emerald-300',
+  },
+]
+
+function Portfolio() {
+  return (
+    <section className="py-24 px-6" id="portfolio">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-medium mb-4">
+            <Sparkles className="w-3.5 h-3.5" />
+            Sitios reales creados con WeblyNow
+          </div>
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
+            Resultados que{' '}
+            <span className="gradient-text">hablan solos</span>
+          </h2>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Empresas reales que confiaron en WeblyNow para su presencia digital.
+            Cada sitio generado con IA en menos de 5 minutos.
+          </p>
+        </div>
+
+        {/* Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {sitiosPortfolio.map((sitio) => (
+            <a
+              key={sitio.url}
+              href={sitio.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`group relative rounded-2xl border ${sitio.border} bg-gradient-to-br ${sitio.color} overflow-hidden hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10`}
+            >
+              {/* Browser mockup */}
+              <div className="relative">
+                {/* Browser chrome */}
+                <div className="flex items-center gap-1.5 px-4 py-2.5 bg-black/40 border-b border-white/10">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                  <div className="ml-3 flex-1 bg-white/10 rounded-md px-3 py-0.5 text-xs text-white/50 font-mono truncate">
+                    {sitio.url.replace('https://', '')}
+                  </div>
+                </div>
+                {/* Screenshot */}
+                <div className="relative w-full aspect-[16/9] overflow-hidden bg-slate-900">
+                  <Image
+                    src={`https://image.thum.io/get/width/1200/crop/675/noanimate/${sitio.url}`}
+                    alt={`Preview de ${sitio.nombre}`}
+                    fill
+                    className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                    unoptimized
+                  />
+                  {/* Overlay gradient bottom */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="p-5 flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold text-white text-lg">{sitio.nombre}</h3>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sitio.tagColor}`}>
+                      {sitio.tag}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{sitio.descripcion}</p>
+                </div>
+                <div className="shrink-0 w-9 h-9 rounded-xl bg-white/10 group-hover:bg-white/20 flex items-center justify-center transition-colors">
+                  <ExternalLink className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" />
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        {/* Stats bar */}
+        <div className="mt-12 grid grid-cols-3 gap-4 max-w-lg mx-auto">
+          {[
+            { num: '4+', label: 'sitios publicados' },
+            { num: '< 5min', label: 'tiempo de generación' },
+            { num: '100%', label: 'con IA' },
+          ].map((s) => (
+            <div key={s.label} className="text-center">
+              <div className="text-2xl font-black gradient-text">{s.num}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function Testimonios() {
   return (
     <section id="testimonios" className="py-24">
@@ -535,6 +669,7 @@ export default function LandingPage() {
       <Navbar />
       <Hero />
       <ComoFunciona />
+      <Portfolio />
       <Planes />
       <Testimonios />
       <CTA />
