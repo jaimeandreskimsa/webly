@@ -25,13 +25,14 @@ async function getUsuarioYPropiedad(userId: string, propiedadId: string) {
 // GET /api/propiedades/[id]
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const { propiedad } = await getUsuarioYPropiedad(session.user.id as string, params.id)
+    const { propiedad } = await getUsuarioYPropiedad(session.user.id as string, id)
     if (!propiedad) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
 
     return NextResponse.json({ propiedad })
@@ -44,13 +45,14 @@ export async function GET(
 // PUT /api/propiedades/[id]
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const { usuario, propiedad } = await getUsuarioYPropiedad(session.user.id as string, params.id)
+    const { usuario, propiedad } = await getUsuarioYPropiedad(session.user.id as string, id)
     if (!usuario) return NextResponse.json({ error: 'Plan no permitido' }, { status: 403 })
     if (!propiedad) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
 
@@ -81,7 +83,7 @@ export async function PUT(
         ...(activa !== undefined && { activa }),
         updatedAt: new Date(),
       })
-      .where(eq(propiedades.id, params.id))
+      .where(eq(propiedades.id, id))
       .returning()
 
     return NextResponse.json({ propiedad: actualizada })
@@ -94,17 +96,18 @@ export async function PUT(
 // DELETE /api/propiedades/[id]
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const { usuario, propiedad } = await getUsuarioYPropiedad(session.user.id as string, params.id)
+    const { usuario, propiedad } = await getUsuarioYPropiedad(session.user.id as string, id)
     if (!usuario) return NextResponse.json({ error: 'Plan no permitido' }, { status: 403 })
     if (!propiedad) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
 
-    await db.delete(propiedades).where(eq(propiedades.id, params.id))
+    await db.delete(propiedades).where(eq(propiedades.id, id))
 
     return NextResponse.json({ ok: true })
   } catch (error) {
