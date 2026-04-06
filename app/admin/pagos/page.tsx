@@ -119,7 +119,7 @@ export default async function AdminPagosPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-slate-500 text-xs font-mono">
-                    {p.mercadoPagoId?.slice(0, 12) || '—'}...
+                    {p.flowToken?.slice(0, 12) || '—'}...
                   </td>
                   <td className="px-5 py-3.5 text-slate-500 text-xs">{formatFecha(p.createdAt)}</td>
                 </tr>
