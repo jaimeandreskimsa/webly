@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { Loader2, Zap, CheckCircle2, AlertCircle } from 'lucide-react'
 
@@ -17,7 +17,7 @@ const frasesGenerando = [
   'Tu sitio está casi listo...',
 ]
 
-export default function GenerandoPage() {
+function GenerandoContent() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
@@ -151,5 +151,13 @@ export default function GenerandoPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function GenerandoPage() {
+  return (
+    <Suspense>
+      <GenerandoContent />
+    </Suspense>
   )
 }
