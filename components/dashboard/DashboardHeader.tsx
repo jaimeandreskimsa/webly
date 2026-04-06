@@ -1,0 +1,34 @@
+'use client'
+
+import { Bell, Search } from 'lucide-react'
+
+interface DashboardHeaderProps {
+  user: {
+    name?: string | null
+  }
+}
+
+export function DashboardHeader({ user }: DashboardHeaderProps) {
+  return (
+    <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 glass sticky top-0 z-30">
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Buscar sitios..."
+          className="bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500/40 w-64 transition-all"
+        />
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button className="relative w-9 h-9 rounded-xl glass glass-hover flex items-center justify-center">
+          <Bell className="w-4 h-4 text-muted-foreground" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full" />
+        </button>
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+          {user.name?.charAt(0).toUpperCase() || '?'}
+        </div>
+      </div>
+    </header>
+  )
+}
