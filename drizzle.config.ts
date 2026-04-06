@@ -8,10 +8,6 @@ export default {
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    host: '127.0.0.1',
-    port: 5432,
-    database: 'webtory',
-    user: 'jaimegomez',
-    ssl: false,
+    url: process.env.DATABASE_URL!,
   },
 } satisfies Config
