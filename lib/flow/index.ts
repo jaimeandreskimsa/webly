@@ -164,16 +164,34 @@ export async function crearPagoPlan(params: PlanPagoParams): Promise<{ checkoutU
   const shortTipo  = (params.tipo || 'nuevo_sitio') === 'nuevo_sitio' ? 'ns' : 'cp'
   const commerceOrder = `${shortSitio}${shortUser}${params.plan}${shortTipo}`.slice(0, 45)
 
-  const result = await crearPagoFlow({
-    apiKey,
-    secretKey,
-    commerceOrder,
-    subject: `WeblyNow — Plan ${planNombre} para ${params.nombreEmpresa}`,
-    amount: monto,
-    email: params.email,
-    urlConfirmation: `${appUrl}/api/pagos/webhook`,
-    urlReturn,
-  })
+  // Flow valida que el email tenga dominio real con MX records.
+  // Si el email del usuario falla (1620), reintentamos con el email del comercio.
+  const MERCHANT_EMAIL = process.env.FLOW_MERCHANT_EMAIL || 'hola@weblynow.com'
+
+  async function tryCrearPago(email: string) {
+    return crearPagoFlow({
+      apiKey,
+      secretKey,
+      commerceOrder,
+      subject: `WeblyNow — Plan ${planNombre} para ${params.nombreEmpresa}`,
+      amount: monto,
+      email,
+      urlConfirmation: `${appUrl}/api/pagos/webhook`,
+      urlReturn,
+    })
+  }
+
+  let result
+  try {
+    result = await tryCrearPago(params.email)
+  } catch (err: any) {
+    // Error 1620 = email de usuario inválido para Flow → reintento con email del comercio
+    if (err.message?.includes('1620')) {
+      result = await tryCrearPago(MERCHANT_EMAIL)
+    } else {
+      throw err
+    }
+  }
 
   return {
     checkoutUrl: `${result.url}?token=${result.token}`,
