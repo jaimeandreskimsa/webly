@@ -139,6 +139,14 @@ export async function GET(req: NextRequest) {
 
   const stream = new ReadableStream({
     async start(controller) {
+      // Heartbeat cada 15s para evitar que Railway/Nginx mate la conexión inactiva
+      // (Claude puede tardar 30-60s en procesar el prompt antes de empezar a responder)
+      const heartbeat = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(': ping\n\n'))
+        } catch {}
+      }, 15_000)
+
       try {
         await db
           .update(sitios)
@@ -190,6 +198,7 @@ export async function GET(req: NextRequest) {
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ done: true, version: nuevaVersion })}\n\n`)
         )
+        clearInterval(heartbeat)
         controller.close()
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error generando sitio'
@@ -198,6 +207,7 @@ export async function GET(req: NextRequest) {
         try {
           await db.update(sitios).set({ estado: 'error' }).where(eq(sitios.id, sitioId!))
         } catch {}
+        clearInterval(heartbeat)
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`)
         )
