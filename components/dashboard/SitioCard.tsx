@@ -153,7 +153,10 @@ export function SitioCard({ sitio }: SitioCardProps) {
       <div className="glass rounded-2xl border border-white/5 p-5 group flex flex-col gap-4 hover:border-indigo-500/30 transition-all">
         {/* Header */}
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
+          <Link
+            href={`/dashboard/sitios/${sitio.id}`}
+            className="flex items-center gap-3 min-w-0 hover:opacity-80 transition-opacity"
+          >
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/20 flex items-center justify-center shrink-0">
               <Globe className="w-5 h-5 text-indigo-400" />
             </div>
@@ -161,7 +164,7 @@ export function SitioCard({ sitio }: SitioCardProps) {
               <h3 className="font-semibold text-sm truncate">{sitio.nombre}</h3>
               <span className={cn('text-xs', planColor)}>Plan {sitio.plan}</span>
             </div>
-          </div>
+          </Link>
 
           {/* Status badge — clickable si está pendiente de pago */}
           {sitio.estado === 'pendiente_pago' ? (
@@ -255,6 +258,20 @@ export function SitioCard({ sitio }: SitioCardProps) {
           </span>
 
           <div className="flex items-center gap-1">
+            {/* Previsualizar — visible y con texto */}
+            {(sitio.estado === 'borrador' || sitio.estado === 'publicado') && (
+              <a
+                href={sitio.deployUrl || `/api/sitios/${sitio.id}/preview`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-green-500/15 text-green-400 hover:text-green-300 transition-all text-xs font-medium"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Previsualizar
+              </a>
+            )}
+
             <Tip label="Descargar ZIP">
               <a
                 href={`/api/sitios/${sitio.id}/download`}
