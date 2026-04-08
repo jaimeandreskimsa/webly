@@ -106,26 +106,58 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ─── Generación en background desacoplada del SSE ────────────────────────────
-// Railway es Node.js persistente: los Promises continúan aunque el cliente
-// cierre la conexión HTTP. Esto es fire-and-forget real.
+// ─── Generación en background con push real-time ─────────────────────────────
+// Railway es Node.js persistente. La Promise sigue corriendo aunque el cliente
+// cierre la pestaña. Los chunks se pushean a todos los SSE clients activos.
 
 type GenStatus = {
   status: 'running' | 'done' | 'error'
   error?: string
   version?: number
   plan?: string
+  chunks: string[]  // acumulado para catch-up en reconexión
+  prompt?: string   // prompt enviado (para visualización)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  controllers: Set<ReadableStreamDefaultController<any>>
 }
 
-// Map en memoria del proceso: persiste entre requests en Railway
 const genStore = new Map<string, GenStatus>()
+const encoder = new TextEncoder()
+
+function sseEncode(obj: unknown) {
+  return encoder.encode(`data: ${JSON.stringify(obj)}\n\n`)
+}
 
 async function generarEnBackground(sitioId: string, datos: DatosWizard) {
+  const { generarSitioStreamConMetadata } = await import('@/lib/claude/generator')
+  const { construirPromptUsuario } = await import('@/lib/claude/prompts')
+
   try {
     await db.update(sitios).set({ estado: 'generando' }).where(eq(sitios.id, sitioId))
-    genStore.set(sitioId, { status: 'running', plan: datos.plan ?? 'pro' })
 
-    const resultado = await generarSitio(datos)
+    const promptText = construirPromptUsuario(datos)
+    const status: GenStatus = {
+      status: 'running',
+      plan: datos.plan ?? 'pro',
+      chunks: [],
+      prompt: promptText,
+      controllers: new Set(),
+    }
+    genStore.set(sitioId, status)
+
+    const resultado = await generarSitioStreamConMetadata(datos, (chunk) => {
+      const s = genStore.get(sitioId)
+      if (!s) return
+      s.chunks.push(chunk)
+      // Push en tiempo real a todos los clientes SSE conectados
+      for (const ctrl of [...s.controllers]) {
+        try {
+          ctrl.enqueue(sseEncode({ chunk }))
+        } catch {
+          s.controllers.delete(ctrl)
+        }
+      }
+    })
 
     const [{ maxVersion }] = await db
       .select({ maxVersion: max(versionesSitio.numeroVersion) })
@@ -150,18 +182,43 @@ async function generarEnBackground(sitioId: string, datos: DatosWizard) {
       updatedAt: new Date(),
     }).where(eq(sitios.id, sitioId))
 
-    genStore.set(sitioId, { status: 'done', version: nuevaVersion, plan: datos.plan ?? 'pro' })
+    // Notificar done a todos los clientes activos
+    const s = genStore.get(sitioId)
+    if (s) {
+      s.status = 'done'
+      s.version = nuevaVersion
+      for (const ctrl of [...s.controllers]) {
+        try {
+          ctrl.enqueue(sseEncode({ done: true, version: nuevaVersion }))
+          setTimeout(() => { try { ctrl.close() } catch {} }, 500)
+        } catch {}
+      }
+      s.controllers.clear()
+    }
     setTimeout(() => genStore.delete(sitioId), 10 * 60 * 1000)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Error desconocido'
     console.error('[generarEnBackground] Error:', msg, err)
     try { await db.update(sitios).set({ estado: 'error' }).where(eq(sitios.id, sitioId)) } catch {}
-    genStore.set(sitioId, { status: 'error', error: msg })
+    const s = genStore.get(sitioId)
+    if (s) {
+      s.status = 'error'
+      s.error = msg
+      for (const ctrl of [...s.controllers]) {
+        try {
+          ctrl.enqueue(sseEncode({ error: msg }))
+          setTimeout(() => { try { ctrl.close() } catch {} }, 500)
+        } catch {}
+      }
+      s.controllers.clear()
+    } else {
+      genStore.set(sitioId, { status: 'error', error: msg, chunks: [], controllers: new Set() })
+    }
     setTimeout(() => genStore.delete(sitioId), 10 * 60 * 1000)
   }
 }
 
-// ─── GET: SSE que observa el genStore ────────────────────────────────────────
+// ─── GET: SSE con push real-time + catch-up en reconexión ────────────────────
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -188,9 +245,8 @@ export async function GET(req: NextRequest) {
 
   // Si ya terminó en DB → done inmediato (evita regenerar en reconexión de EventSource)
   if (sitio.estado === 'borrador' || sitio.estado === 'publicado') {
-    const enc = new TextEncoder()
     return new Response(
-      enc.encode(`data: ${JSON.stringify({ done: true })}\n\n`),
+      encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`),
       { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' } }
     )
   }
@@ -198,44 +254,65 @@ export async function GET(req: NextRequest) {
   // Lanzar generación en fondo si no está ya corriendo
   const existing = genStore.get(sitioId)
   if (!existing || existing.status === 'error') {
-    // SIN await — fire-and-forget: sigue corriendo aunque el cliente cierre la pestaña
+    // SIN await — fire-and-forget
     generarEnBackground(sitioId, datos)
   }
 
-  const encoder = new TextEncoder()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let _controller: ReadableStreamDefaultController<any> | null = null
 
   const stream = new ReadableStream({
     start(controller) {
+      _controller = controller
       const plan = datos.plan ?? 'pro'
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ plan })}\n\n`))
+      controller.enqueue(sseEncode({ plan }))
 
-      let active = true
+      const s = genStore.get(sitioId)
+      if (!s) {
+        controller.enqueue(sseEncode({ error: 'Estado perdido' }))
+        setTimeout(() => { try { controller.close() } catch {} }, 200)
+        return
+      }
 
-      // Polling al genStore cada 2s + heartbeat para mantener la conexión viva
-      const poll = setInterval(() => {
-        if (!active) return
-        const s = genStore.get(sitioId)
+      // Enviar prompt para visualización en el cliente
+      if (s.prompt) {
+        controller.enqueue(sseEncode({ prompt: s.prompt }))
+      }
+
+      // Catch-up: enviar todos los chunks acumulados hasta ahora
+      for (const c of s.chunks) {
+        controller.enqueue(sseEncode({ chunk: c }))
+      }
+
+      // Si ya terminó mientras nos conectábamos
+      if (s.status === 'done') {
+        controller.enqueue(sseEncode({ done: true, version: s.version }))
+        setTimeout(() => { try { controller.close() } catch {} }, 500)
+        return
+      }
+      if (s.status === 'error') {
+        controller.enqueue(sseEncode({ error: s.error ?? 'Error generando sitio' }))
+        setTimeout(() => { try { controller.close() } catch {} }, 500)
+        return
+      }
+
+      // Registrar para recibir chunks en tiempo real
+      s.controllers.add(controller)
+
+      // Heartbeat cada 15s para mantener la conexión viva
+      const heartbeat = setInterval(() => {
         try {
-          if (s?.status === 'done') {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, version: s.version })}\n\n`))
-            clearInterval(poll)
-            active = false
-            setTimeout(() => { try { controller.close() } catch {} }, 500)
-          } else if (s?.status === 'error') {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: s.error ?? 'Error generando sitio' })}\n\n`))
-            clearInterval(poll)
-            active = false
-            setTimeout(() => { try { controller.close() } catch {} }, 500)
-          } else {
-            // Heartbeat — mantiene la conexión viva mientras Claude procesa
-            controller.enqueue(encoder.encode(': ping\n\n'))
-          }
+          controller.enqueue(encoder.encode(': ping\n\n'))
         } catch {
-          // Cliente se desconectó — el background task sigue corriendo igual
-          clearInterval(poll)
-          active = false
+          clearInterval(heartbeat)
+          genStore.get(sitioId)?.controllers.delete(controller)
         }
-      }, 2000)
+      }, 15_000)
+    },
+    cancel() {
+      if (_controller) {
+        genStore.get(sitioId)?.controllers.delete(_controller)
+      }
     },
   })
 

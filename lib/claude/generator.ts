@@ -147,6 +147,50 @@ export async function* generarSitioStream(datos: DatosWizard): AsyncGenerator<st
   }
 }
 
+// ─── Streaming + callback + metadata final ───────────────────────────────────
+// Diseñado para el background task: llama onChunk en tiempo real (para que el
+// servidor pueda pushear a clientes SSE) y devuelve metadata al terminar.
+
+export async function generarSitioStreamConMetadata(
+  datos: DatosWizard,
+  onChunk: (chunk: string) => void,
+): Promise<ResultadoGeneracion> {
+  // Dev fallback: simular streaming con el mock
+  const envKey = process.env.ANTHROPIC_API_KEY || ''
+  if (process.env.NODE_ENV === 'development' && (!envKey || envKey.includes('xxxx'))) {
+    const mock = generarHTMLMock(datos)
+    for (let i = 0; i < mock.html.length; i += 40) {
+      onChunk(mock.html.slice(i, i + 40))
+    }
+    return mock
+  }
+
+  const { systemPrompt, modelo, maxTokens, apiKey } = await getGeneratorConfig(datos.plan)
+  const client = new Anthropic({ apiKey })
+  let htmlAcumulado = ''
+
+  const stream = client.messages.stream({
+    model: modelo,
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: construirPromptUsuario(datos) }],
+  })
+
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      onChunk(event.delta.text)
+      htmlAcumulado += event.delta.text
+    }
+  }
+
+  const finalMsg = await stream.finalMessage()
+  return {
+    html: extraerHTML(htmlAcumulado),
+    tokensUsados: finalMsg.usage.input_tokens + finalMsg.usage.output_tokens,
+    modeloUsado: modelo,
+  }
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function extraerHTML(texto: string): string {

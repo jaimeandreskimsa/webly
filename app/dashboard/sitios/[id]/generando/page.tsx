@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Loader2, Zap, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Loader2, Zap, CheckCircle2, AlertCircle, ChevronRight, Terminal } from 'lucide-react'
 
 // Estimación de chars totales por plan (tokens × 4 chars aprox.)
 const CHARS_ESPERADOS: Record<string, number> = {
@@ -36,10 +36,22 @@ function GenerandoContent() {
   const [estado, setEstado] = useState<'generando' | 'listo' | 'error'>('generando')
   const [errorMsg, setErrorMsg] = useState('')
   const [iniciado, setIniciado] = useState(false)
+  const [htmlOutput, setHtmlOutput] = useState('')
+  const [promptText, setPromptText] = useState('')
+  const [showPrompt, setShowPrompt] = useState(false)
+  const [modeloInfo, setModeloInfo] = useState('claude-sonnet-4-6')
   const charsRef = useRef(0)
   const completedRef = useRef(false)
   const planRef = useRef<string>('pro')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const terminalRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll terminal al recibir nuevo código
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight
+    }
+  }, [htmlOutput])
 
   // Progreso suave base (avanza despacio independientemente de los chunks)
   useEffect(() => {
@@ -67,12 +79,20 @@ function GenerandoContent() {
       try {
         const data = JSON.parse(e.data)
 
-        // Progreso real por chars: solo avanza si supera el progreso actual
         if (data.chunk) {
           charsRef.current += data.chunk.length
           const esperado = CHARS_ESPERADOS[planRef.current] ?? 60_000
           const pctReal = Math.min(88, (charsRef.current / esperado) * 100)
           setProgreso(p => Math.max(p, pctReal))
+          // Acumular HTML para visualización (máx. 120k chars para no saturar DOM)
+          setHtmlOutput(prev => {
+            const next = prev + data.chunk
+            return next.length > 120_000 ? next.slice(-120_000) : next
+          })
+        }
+
+        if (data.prompt) {
+          setPromptText(data.prompt)
         }
 
         if (data.plan) {
@@ -138,7 +158,7 @@ function GenerandoContent() {
         <div className="orb absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-600/15" style={{ animationDelay: '3s' }} />
       </div>
 
-      <div className="relative z-10 max-w-lg w-full mx-4 text-center">
+      <div className="relative z-10 max-w-2xl w-full mx-4 text-center">
         {estado === 'generando' && (
           <>
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-8 glow-purple">
@@ -170,6 +190,69 @@ function GenerandoContent() {
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
               Puedes navegar — el proceso sigue en segundo plano
+            </div>
+
+            {/* ── Terminal constructor en tiempo real ── */}
+            <div className="mt-6 rounded-2xl overflow-hidden border border-white/8 shadow-2xl text-left">
+              {/* Barra de título estilo Mac */}
+              <div className="flex items-center gap-2 px-4 py-3 bg-[#1a1d2e] border-b border-white/6">
+                <span className="w-3 h-3 rounded-full bg-red-500/90" />
+                <span className="w-3 h-3 rounded-full bg-yellow-500/90" />
+                <span className="w-3 h-3 rounded-full bg-green-500/90" />
+                <div className="ml-3 flex items-center gap-2">
+                  <Terminal className="w-3.5 h-3.5 text-indigo-400/70" />
+                  <span className="text-xs text-white/40 font-mono">
+                    {modeloInfo} · plan {planRef.current}
+                  </span>
+                </div>
+                {/* Toggle prompt */}
+                {promptText && (
+                  <button
+                    onClick={() => setShowPrompt(p => !p)}
+                    className="ml-auto flex items-center gap-1 text-[11px] text-indigo-400/60 hover:text-indigo-300 transition-colors"
+                  >
+                    <ChevronRight className={`w-3 h-3 transition-transform ${showPrompt ? 'rotate-90' : ''}`} />
+                    {showPrompt ? 'Ocultar prompt' : 'Ver prompt'}
+                  </button>
+                )}
+              </div>
+
+              {/* Prompt colapsable */}
+              {showPrompt && promptText && (
+                <div className="bg-[#0e1118] border-b border-white/5 px-4 py-3 max-h-40 overflow-auto">
+                  <p className="text-[10px] text-indigo-300/50 font-mono uppercase tracking-wider mb-2">Prompt enviado a Claude</p>
+                  <pre className="text-[11px] text-white/35 font-mono whitespace-pre-wrap leading-relaxed">
+                    {promptText}
+                  </pre>
+                </div>
+              )}
+
+              {/* Output de código en vivo */}
+              <div
+                ref={terminalRef}
+                className="h-72 overflow-auto bg-[#090c14] px-4 py-3"
+              >
+                {htmlOutput ? (
+                  <pre className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-all">
+                    {/* Colorear por tokens HTML de forma simple */}
+                    {htmlOutput.split(/(<[^>]+>)/g).map((part, i) =>
+                      part.startsWith('<') ? (
+                        <span key={i} className="text-indigo-300/80">{part}</span>
+                      ) : (
+                        <span key={i} className="text-emerald-300/60">{part}</span>
+                      )
+                    )}
+                    {estado === 'generando' && (
+                      <span className="animate-pulse text-indigo-400 font-bold">▌</span>
+                    )}
+                  </pre>
+                ) : (
+                  <div className="flex items-center gap-2 h-full text-white/20 font-mono text-xs">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Esperando respuesta de Claude AI...
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}
