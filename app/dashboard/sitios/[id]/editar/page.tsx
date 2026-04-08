@@ -16,10 +16,16 @@ export default async function EditarSitioPage({
   const session = await auth()
   if (!session?.user) redirect('/login')
 
+  const esAdmin = (session.user as any).rol === 'admin'
+
   const [sitio] = await db
     .select()
     .from(sitios)
-    .where(and(eq(sitios.id, id), eq(sitios.userId, session.user.id as string)))
+    .where(
+      esAdmin
+        ? eq(sitios.id, id)
+        : and(eq(sitios.id, id), eq(sitios.userId, session.user.id as string))
+    )
     .limit(1)
 
   if (!sitio) notFound()

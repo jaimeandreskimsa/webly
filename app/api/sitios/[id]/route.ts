@@ -13,10 +13,15 @@ export async function GET(
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
+  const esAdmin = (session.user as any).rol === 'admin'
   const [sitio] = await db
     .select()
     .from(sitios)
-    .where(and(eq(sitios.id, id), eq(sitios.userId, session.user.id as string)))
+    .where(
+      esAdmin
+        ? eq(sitios.id, id)
+        : and(eq(sitios.id, id), eq(sitios.userId, session.user.id as string))
+    )
     .limit(1)
 
   if (!sitio) {
@@ -36,10 +41,15 @@ export async function PATCH(
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
+  const esAdmin = (session.user as any).rol === 'admin'
   const [sitioActual] = await db
     .select()
     .from(sitios)
-    .where(and(eq(sitios.id, id), eq(sitios.userId, session.user.id as string)))
+    .where(
+      esAdmin
+        ? eq(sitios.id, id)
+        : and(eq(sitios.id, id), eq(sitios.userId, session.user.id as string))
+    )
     .limit(1)
 
   if (!sitioActual) {
@@ -71,10 +81,15 @@ export async function DELETE(
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
+  const esAdmin = (session.user as any).rol === 'admin'
   const [sitio] = await db
     .select()
     .from(sitios)
-    .where(and(eq(sitios.id, id), eq(sitios.userId, session.user.id as string)))
+    .where(
+      esAdmin
+        ? eq(sitios.id, id)
+        : and(eq(sitios.id, id), eq(sitios.userId, session.user.id as string))
+    )
     .limit(1)
 
   if (!sitio) {

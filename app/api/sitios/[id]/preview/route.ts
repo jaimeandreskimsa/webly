@@ -13,11 +13,14 @@ export async function GET(
     return new Response('No autorizado', { status: 401 })
   }
 
+  const esAdmin = (session.user as any).rol === 'admin'
   const [sitio] = await db
     .select()
     .from(sitios)
     .where(
-      and(eq(sitios.id, id), eq(sitios.userId, session.user.id as string))
+      esAdmin
+        ? eq(sitios.id, id)
+        : and(eq(sitios.id, id), eq(sitios.userId, session.user.id as string))
     )
     .limit(1)
 
