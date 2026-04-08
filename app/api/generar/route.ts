@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { db, sitios, versionesSitio } from '@/lib/db'
-import { eq, max } from 'drizzle-orm'
+import { eq, max, and } from 'drizzle-orm'
 import { generarSitio } from '@/lib/claude/generator'
 import type { DatosWizard } from '@/components/wizard/WizardCreacion'
 
@@ -186,13 +186,8 @@ async function generarEnBackground(sitioId: string, datos: DatosWizard) {
 
     entry.status = 'done'
     entry.version = nuevaVersion
-    // Enviar done y cerrar cada controller para forzar flush
     for (const ctrl of [...entry.controllers]) {
-      try {
-        ctrl.enqueue(sseEncode({ done: true, version: nuevaVersion }))
-        // Cerrar el stream para que el mensaje se flushee al cliente
-        setTimeout(() => { try { ctrl.close() } catch {} }, 200)
-      } catch {}
+      try { ctrl.enqueue(sseEncode({ done: true, version: nuevaVersion })) } catch {}
     }
     entry.controllers.clear()
     setTimeout(() => genStore.delete(sitioId), 10 * 60 * 1000)
@@ -235,13 +230,33 @@ export async function GET(req: NextRequest) {
 
   const datos = sitio.contenidoJson as unknown as DatosWizard
 
-  // Si ya terminó en DB → done inmediato (evita regenerar en reconexión de EventSource)
-  // SOLO si ya existe al menos una versión generada (totalEdiciones > 0)
-  if ((sitio.estado === 'borrador' || sitio.estado === 'publicado') && (sitio.totalEdiciones ?? 0) > 0) {
+  // Guardia: si el contenidoJson está vacío (sitio demo/incompleto) no podemos generar
+  if (!datos || !datos.plan) {
     return new Response(
-      encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`),
+      encoder.encode(`data: ${JSON.stringify({ error: 'El sitio no tiene datos de configuraci\u00f3n. Rec\u00e9alo desde el wizard.' })}\n\n`),
       { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' } }
     )
+  }
+
+  // Si ya terminó en DB → done inmediato (evita regenerar en reconexión de EventSource)
+  // IMPORTANTE: verificar que realmente existe una versión con esActual=true.
+  // Si estado='borrador' pero sin versión (sitio creado sin generar) hay que generar.
+  if (sitio.estado === 'borrador' || sitio.estado === 'publicado') {
+    const [versionExistente] = await db
+      .select({ id: versionesSitio.id })
+      .from(versionesSitio)
+      .where(and(eq(versionesSitio.sitioId, sitioId), eq(versionesSitio.esActual, true)))
+      .limit(1)
+
+    if (versionExistente) {
+      // Versión real existe — done inmediato sin regenerar
+      return new Response(
+        encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`),
+        { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' } }
+      )
+    }
+    // Sin versión real: borrador fantón → resetear estado y dejar que se genere abajo
+    await db.update(sitios).set({ estado: 'generando', updatedAt: new Date() }).where(eq(sitios.id, sitioId))
   }
 
   // Lanzar generación en fondo si no está ya corriendo
