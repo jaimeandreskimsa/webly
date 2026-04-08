@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { db, sitios, versionesSitio } from '@/lib/db'
+import { db, sitios, versionesSitio, usuarios } from '@/lib/db'
 import { eq, max, and } from 'drizzle-orm'
 import { generarSitio } from '@/lib/claude/generator'
 import type { DatosWizard } from '@/components/wizard/WizardCreacion'
+import { enviarEmailAdminSitioCreado, enviarEmailSitioListo } from '@/lib/email'
 
 export const maxDuration = 300 // 5 minutos para generación larga — aplica a POST y GET
 
@@ -190,6 +191,32 @@ async function generarEnBackground(sitioId: string, datos: DatosWizard) {
       try { ctrl.enqueue(sseEncode({ done: true, version: nuevaVersion })) } catch {}
     }
     entry.controllers.clear()
+
+    // Notificaciones por email — fire-and-forget
+    ;(async () => {
+      try {
+        const [sitioActual] = await db.select({ nombre: sitios.nombre, plan: sitios.plan, userId: sitios.userId })
+          .from(sitios).where(eq(sitios.id, sitioId)).limit(1)
+        const [usuario] = await db.select({ nombre: usuarios.nombre, email: usuarios.email })
+          .from(usuarios).where(eq(usuarios.id, sitioActual.userId)).limit(1)
+        if (sitioActual && usuario) {
+          await Promise.allSettled([
+            enviarEmailAdminSitioCreado({
+              sitioId,
+              sitioNombre: sitioActual.nombre,
+              plan: sitioActual.plan,
+              usuarioNombre: usuario.nombre,
+              usuarioEmail: usuario.email,
+              tokensUsados: resultado.tokensUsados,
+            }),
+            enviarEmailSitioListo(usuario.email, usuario.nombre, sitioActual.nombre, sitioId),
+          ])
+        }
+      } catch (emailErr) {
+        console.error('[generarEnBackground] Error emails:', emailErr)
+      }
+    })()
+
     setTimeout(() => genStore.delete(sitioId), 10 * 60 * 1000)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Error desconocido'

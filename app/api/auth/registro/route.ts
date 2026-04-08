@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { db, usuarios } from '@/lib/db'
 import { z } from 'zod'
+import { enviarEmailBienvenida } from '@/lib/email'
 
 const PLANES_VALIDOS = ['basico', 'pro', 'premium', 'broker'] as const
 type PlanValido = typeof PLANES_VALIDOS[number]
@@ -53,6 +54,11 @@ export async function POST(req: NextRequest) {
         plan: plan as PlanValido,
       })
       .returning({ id: usuarios.id, email: usuarios.email, nombre: usuarios.nombre })
+
+    // Email de bienvenida — fire-and-forget
+    enviarEmailBienvenida(nombre, email).catch(err =>
+      console.error('[registro] Error enviando email bienvenida:', err)
+    )
 
     return NextResponse.json(
       { mensaje: 'Usuario creado exitosamente', usuario: nuevoUsuario },
