@@ -226,8 +226,8 @@ export function SitioCard({ sitio }: SitioCardProps) {
           <p className="text-xs text-red-400 bg-red-500/10 rounded-lg px-3 py-2">{deployError}</p>
         )}
 
-        {/* Domain config — solo si ya fue desplegado */}
-        {sitio.deployUrl && (
+        {/* Domain config — visible en sitios generados (borrador o publicado) */}
+        {(sitio.estado === 'borrador' || sitio.estado === 'publicado') && (
           <button
             onClick={(e) => { e.stopPropagation(); setShowDomainGuide(true) }}
             className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl bg-indigo-500/8 border border-indigo-500/15 hover:bg-indigo-500/15 hover:border-indigo-500/30 transition-all group/domain"
@@ -236,8 +236,12 @@ export function SitioCard({ sitio }: SitioCardProps) {
               <Link2 className="w-3.5 h-3.5 text-indigo-400" />
             </div>
             <div className="text-left flex-1 min-w-0">
-              <p className="text-xs font-semibold text-indigo-300">Configurar dominio propio</p>
-              <p className="text-[10px] text-slate-500">Conecta tu dominio .cl, .com, etc.</p>
+              <p className="text-xs font-semibold text-indigo-300">
+                {sitio.deployUrl ? 'Configurar dominio propio' : 'Publicar y configurar dominio'}
+              </p>
+              <p className="text-[10px] text-slate-500">
+                {sitio.deployUrl ? 'Conecta tu dominio .cl, .com, etc.' : 'Despliega en Vercel y conecta tu dominio'}
+              </p>
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-indigo-400/50 group-hover/domain:text-indigo-400 group-hover/domain:translate-x-0.5 transition-all" />
           </button>
@@ -376,14 +380,22 @@ function DomainGuideModal({
   onCopy: (text: string) => void
   onClose: () => void
 }) {
+  const needsDeploy = !sitio.deployUrl
+
   const steps = [
+    ...(needsDeploy ? [{
+      num: '0',
+      title: 'Primero: despliega tu sitio',
+      desc: 'Antes de configurar un dominio, necesitas publicar tu sitio en Vercel. Haz click en el ícono del cohete (🚀) en tu card de sitio para desplegarlo.',
+      highlight: true,
+    }] : []),
     {
-      num: '1',
+      num: needsDeploy ? '1' : '1',
       title: 'Compra tu dominio',
       desc: 'Si aún no tienes un dominio, cómpralo en NIC Chile (.cl) o Namecheap (.com). Asegúrate de tener acceso al panel DNS.',
     },
     {
-      num: '2',
+      num: needsDeploy ? '2' : '2',
       title: 'Abre tu proyecto en Vercel',
       desc: 'Inicia sesión en vercel.com y abre el proyecto de tu sitio.',
       link: 'https://vercel.com/dashboard',
@@ -460,10 +472,17 @@ function DomainGuideModal({
 
         {/* Steps */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {steps.map((step) => (
-            <div key={step.num} className="flex gap-3">
-              <div className="w-6 h-6 rounded-full bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[10px] font-bold text-indigo-400">{step.num}</span>
+          {steps.map((step: any) => (
+            <div key={step.num} className={cn('flex gap-3', step.highlight && 'bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 -mx-1')}>
+              <div className={cn(
+                'w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 border',
+                step.highlight
+                  ? 'bg-amber-500/20 border-amber-500/30'
+                  : 'bg-indigo-500/15 border-indigo-500/25'
+              )}>
+                <span className={cn('text-[10px] font-bold', step.highlight ? 'text-amber-400' : 'text-indigo-400')}>
+                  {step.highlight ? '!' : step.num}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-semibold mb-0.5">{step.title}</h4>
@@ -484,7 +503,7 @@ function DomainGuideModal({
                 )}
                 {step.dns && (
                   <div className="mt-2 space-y-1.5">
-                    {step.dns.map((record) => (
+                    {step.dns.map((record: { type: string; name: string; value: string }) => (
                       <div
                         key={record.type + record.name}
                         className="flex items-center gap-2 bg-black/30 rounded-lg px-3 py-2 font-mono text-[11px] border border-white/5"
