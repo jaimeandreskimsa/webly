@@ -46,6 +46,30 @@ function GenerandoContent() {
   const terminalRef = useRef<HTMLDivElement>(null)
   const lastChunkTimeRef = useRef<number>(Date.now())
 
+  // Restaurar progreso de sessionStorage al montar (persiste entre navegaciones).
+  // Esto corre antes de que llegue el catchup del SSE, evitando el salto visual de 0%.
+  useEffect(() => {
+    const key = `gen_progress_${sitioId}`
+    const stored = sessionStorage.getItem(key)
+    if (stored) {
+      const p = parseFloat(stored)
+      if (p > 0 && p < 100) {
+        setProgreso(p)
+        charsRef.current = p  // previene que el stuck-detector dispare prematuramente
+      }
+    }
+  }, [sitioId])
+
+  // Persistir progreso en sessionStorage mientras genera
+  useEffect(() => {
+    const key = `gen_progress_${sitioId}`
+    if (progreso > 1 && estado === 'generando') {
+      sessionStorage.setItem(key, String(Math.round(progreso * 10) / 10))
+    } else if (estado === 'listo') {
+      sessionStorage.removeItem(key)
+    }
+  }, [progreso, estado, sitioId])
+
   // Auto-scroll terminal al recibir nuevo código
   useEffect(() => {
     if (terminalRef.current) {

@@ -129,32 +129,34 @@ function sseEncode(obj: unknown) {
 }
 
 async function generarEnBackground(sitioId: string, datos: DatosWizard) {
+  // ⚠️ genStore.set ANTES del primer await.
+  // ReadableStream.start() en el GET handler corre sincrónicamente justo después
+  // de que esta función cede en su primer await (los dynamic imports).
+  // Si ponemos genStore.set DESPUÉS del await, start() siempre encuentra undefined.
+  const entry: GenStatus = {
+    status: 'running',
+    plan: datos.plan ?? 'pro',
+    chunks: [],
+    prompt: '',          // se rellena después del import
+    controllers: new Set(),
+  }
+  genStore.set(sitioId, entry)   // ← sincrono, antes de cualquier await
+
   const { generarSitioStreamConMetadata } = await import('@/lib/claude/generator')
   const { construirPromptUsuario } = await import('@/lib/claude/prompts')
 
   try {
     await db.update(sitios).set({ estado: 'generando' }).where(eq(sitios.id, sitioId))
 
-    const promptText = construirPromptUsuario(datos)
-    const status: GenStatus = {
-      status: 'running',
-      plan: datos.plan ?? 'pro',
-      chunks: [],
-      prompt: promptText,
-      controllers: new Set(),
-    }
-    genStore.set(sitioId, status)
+    entry.prompt = construirPromptUsuario(datos)
 
     const resultado = await generarSitioStreamConMetadata(datos, (chunk) => {
-      const s = genStore.get(sitioId)
-      if (!s) return
-      s.chunks.push(chunk)
-      // Push en tiempo real a todos los clientes SSE conectados
-      for (const ctrl of [...s.controllers]) {
+      entry.chunks.push(chunk)
+      for (const ctrl of [...entry.controllers]) {
         try {
           ctrl.enqueue(sseEncode({ chunk }))
         } catch {
-          s.controllers.delete(ctrl)
+          entry.controllers.delete(ctrl)
         }
       }
     })
@@ -182,39 +184,23 @@ async function generarEnBackground(sitioId: string, datos: DatosWizard) {
       updatedAt: new Date(),
     }).where(eq(sitios.id, sitioId))
 
-    // Notificar done a todos los clientes activos
-    const s = genStore.get(sitioId)
-    if (s) {
-      s.status = 'done'
-      s.version = nuevaVersion
-      for (const ctrl of [...s.controllers]) {
-        try {
-          ctrl.enqueue(sseEncode({ done: true, version: nuevaVersion }))
-          // NO cerramos aquí — dejamos que el cliente cierre al recibir done.
-          // Cerrar desde el servidor crea race condition donde la conexión se
-          // cierra antes de que done sea flusheado por el proxy de Railway.
-        } catch {}
-      }
-      s.controllers.clear()
+    entry.status = 'done'
+    entry.version = nuevaVersion
+    for (const ctrl of [...entry.controllers]) {
+      try { ctrl.enqueue(sseEncode({ done: true, version: nuevaVersion })) } catch {}
     }
+    entry.controllers.clear()
     setTimeout(() => genStore.delete(sitioId), 10 * 60 * 1000)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Error desconocido'
     console.error('[generarEnBackground] Error:', msg, err)
     try { await db.update(sitios).set({ estado: 'error' }).where(eq(sitios.id, sitioId)) } catch {}
-    const s = genStore.get(sitioId)
-    if (s) {
-      s.status = 'error'
-      s.error = msg
-      for (const ctrl of [...s.controllers]) {
-        try {
-          ctrl.enqueue(sseEncode({ error: msg }))
-        } catch {}
-      }
-      s.controllers.clear()
-    } else {
-      genStore.set(sitioId, { status: 'error', error: msg, chunks: [], controllers: new Set() })
+    entry.status = 'error'
+    entry.error = msg
+    for (const ctrl of [...entry.controllers]) {
+      try { ctrl.enqueue(sseEncode({ error: msg })) } catch {}
     }
+    entry.controllers.clear()
     setTimeout(() => genStore.delete(sitioId), 10 * 60 * 1000)
   }
 }
