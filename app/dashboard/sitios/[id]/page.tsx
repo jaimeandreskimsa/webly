@@ -14,8 +14,9 @@ import { formatFecha, PLAN_NOMBRES } from '@/lib/utils'
 export default async function SitioPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id } = await params
   const session = await auth()
   if (!session?.user) redirect('/login')
 
@@ -24,7 +25,7 @@ export default async function SitioPage({
     .from(sitios)
     .where(
       and(
-        eq(sitios.id, params.id),
+        eq(sitios.id, id),
         eq(sitios.userId, session.user.id as string)
       )
     )
@@ -37,7 +38,7 @@ export default async function SitioPage({
     versiones = await db
       .select()
       .from(versionesSitio)
-      .where(eq(versionesSitio.sitioId, params.id))
+      .where(eq(versionesSitio.sitioId, id))
       .orderBy(desc(versionesSitio.numeroVersion))
       .limit(10)
   } catch {

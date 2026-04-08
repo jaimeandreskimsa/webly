@@ -8,8 +8,9 @@ import { PLAN_LIMITE_EDICIONES } from '@/lib/utils'
 export default async function EditarSitioPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id } = await params
   const session = await auth()
   if (!session?.user) redirect('/login')
 
@@ -18,7 +19,7 @@ export default async function EditarSitioPage({
     .from(sitios)
     .where(
       and(
-        eq(sitios.id, params.id),
+        eq(sitios.id, id),
         eq(sitios.userId, session.user.id as string)
       )
     )
@@ -36,7 +37,7 @@ export default async function EditarSitioPage({
       .where(
         and(
           eq(edicionesMensuales.userId, session.user.id as string),
-          eq(edicionesMensuales.sitioId, params.id),
+          eq(edicionesMensuales.sitioId, id),
           eq(edicionesMensuales.mes, ahora.getMonth() + 1),
           eq(edicionesMensuales.año, ahora.getFullYear())
         )
