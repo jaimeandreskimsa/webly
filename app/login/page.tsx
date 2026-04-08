@@ -33,11 +33,20 @@ function LoginContent() {
       // Leer la sesión para saber el rol y redirigir correctamente
       const session = await getSession()
       const rol = (session?.user as any)?.rol
-      if (rol === 'admin' && callbackUrl === '/dashboard') {
+
+      // Admin → siempre al panel admin, sin importar el callbackUrl
+      if (rol === 'admin') {
         router.push('/admin')
-      } else {
-        router.push(callbackUrl)
+        return
       }
+
+      // Usuarios normales: si el callbackUrl apunta a /dashboard/nuevo
+      // (flujo de primer pago), redirigir al dashboard en cambio —
+      // ya tienen cuenta, no deben volver a pagar al iniciar sesión
+      const destino = callbackUrl.startsWith('/dashboard/nuevo')
+        ? '/dashboard'
+        : callbackUrl
+      router.push(destino)
     }
   }
 
