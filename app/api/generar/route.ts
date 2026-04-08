@@ -190,7 +190,9 @@ async function generarEnBackground(sitioId: string, datos: DatosWizard) {
       for (const ctrl of [...s.controllers]) {
         try {
           ctrl.enqueue(sseEncode({ done: true, version: nuevaVersion }))
-          setTimeout(() => { try { ctrl.close() } catch {} }, 500)
+          // NO cerramos aquí — dejamos que el cliente cierre al recibir done.
+          // Cerrar desde el servidor crea race condition donde la conexión se
+          // cierra antes de que done sea flusheado por el proxy de Railway.
         } catch {}
       }
       s.controllers.clear()
@@ -207,7 +209,6 @@ async function generarEnBackground(sitioId: string, datos: DatosWizard) {
       for (const ctrl of [...s.controllers]) {
         try {
           ctrl.enqueue(sseEncode({ error: msg }))
-          setTimeout(() => { try { ctrl.close() } catch {} }, 500)
         } catch {}
       }
       s.controllers.clear()

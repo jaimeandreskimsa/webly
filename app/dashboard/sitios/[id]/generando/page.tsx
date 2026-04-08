@@ -45,6 +45,7 @@ function GenerandoContent() {
   const planRef = useRef<string>('pro')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const terminalRef = useRef<HTMLDivElement>(null)
+  const lastChunkTimeRef = useRef<number>(Date.now())
 
   // Auto-scroll terminal al recibir nuevo código
   useEffect(() => {
@@ -52,6 +53,36 @@ function GenerandoContent() {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight
     }
   }, [htmlOutput])
+
+  // Safety net: si los chunks dejaron de llegar pero done nunca llegó,
+  // es porque el mensaje se perdió (Railway flush race). Polleamos DB directamente.
+  useEffect(() => {
+    if (estado !== 'generando') return
+    const check = setInterval(() => {
+      if (completedRef.current) return
+      if (charsRef.current < 500) return // aún no ha empezado
+      const sinceChunk = Date.now() - lastChunkTimeRef.current
+      if (sinceChunk < 8000) return // chunks recientes — esperar
+      // Han pasado 8s sin chunks: Claude terminó, DB guardado, done se perdió
+      fetch(`/api/sitios/${sitioId}`)
+        .then(r => r.json())
+        .then(({ sitio: s }) => {
+          if (completedRef.current) return
+          if (s?.estado === 'borrador' || s?.estado === 'publicado') {
+            completedRef.current = true
+            setProgreso(100)
+            setEstado('listo')
+            setTimeout(() => router.push(`/dashboard/sitios/${sitioId}`), 1500)
+          } else if (s?.estado === 'error') {
+            completedRef.current = true
+            setErrorMsg('El servidor encontró un error al guardar el sitio.')
+            setEstado('error')
+          }
+        })
+        .catch(() => {})
+    }, 3000)
+    return () => clearInterval(check)
+  }, [estado, sitioId, router])
 
   // Progreso suave base (avanza despacio independientemente de los chunks)
   useEffect(() => {
@@ -62,8 +93,8 @@ function GenerandoContent() {
         if (p < 30)  return Math.min(30,  p + 1.2)   // llega a 30% en ~50s
         if (p < 60)  return Math.min(60,  p + 0.5)   // llega a 60% en ~60s más
         if (p < 88)  return Math.min(88,  p + 0.18)  // llega a 88% en ~3 min más
-        // Después de 88%: micro-movimiento para que no parezca frozen
-        return Math.min(96, p + 0.04)
+        // Después de 88%: avanza hacia 99% (no freezear visualmente)
+        return Math.min(99, p + 0.12)
       })
     }, 2000)
     return () => clearInterval(iv)
@@ -81,6 +112,7 @@ function GenerandoContent() {
 
         if (data.chunk) {
           charsRef.current += data.chunk.length
+          lastChunkTimeRef.current = Date.now()
           const esperado = CHARS_ESPERADOS[planRef.current] ?? 60_000
           const pctReal = Math.min(88, (charsRef.current / esperado) * 100)
           setProgreso(p => Math.max(p, pctReal))
