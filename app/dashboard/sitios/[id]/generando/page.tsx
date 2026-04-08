@@ -39,6 +39,20 @@ function GenerandoContent() {
   const completedRef = useRef(false)
   const planRef = useRef<string>('pro')
 
+  // Progreso suave base (avanza despacio independientemente de los chunks)
+  useEffect(() => {
+    if (estado !== 'generando') return
+    const iv = setInterval(() => {
+      setProgreso(p => {
+        if (p >= 88) return p
+        // Avance más rápido al principio, más lento al acercarse al techo
+        const increment = p < 30 ? 2.5 : p < 60 ? 1.5 : 0.6
+        return Math.min(88, p + increment)
+      })
+    }, 2000)
+    return () => clearInterval(iv)
+  }, [estado])
+
   // Rotar frases mientras genera
   useEffect(() => {
     if (estado !== 'generando') return
@@ -58,12 +72,12 @@ function GenerandoContent() {
       try {
         const data = JSON.parse(e.data)
 
-        // Actualizar barra de progreso según chars recibidos
+        // Progreso real por chars: solo avanza si supera el progreso actual
         if (data.chunk) {
           charsRef.current += data.chunk.length
           const esperado = CHARS_ESPERADOS[planRef.current] ?? 60_000
-          const pct = Math.min(90, (charsRef.current / esperado) * 100)
-          setProgreso(pct)
+          const pctReal = Math.min(88, (charsRef.current / esperado) * 100)
+          setProgreso(p => Math.max(p, pctReal))
         }
 
         if (data.plan) {
