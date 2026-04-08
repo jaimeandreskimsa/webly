@@ -1,0 +1,10 @@
+# No subir a Railway (reduce el tamaño del contexto de build)
+.git/
+.github/
+.vscode/
+*.md
+*.log
+drizzle/
+scripts/
+.env.local
+.env.development.local
