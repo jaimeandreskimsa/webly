@@ -4,19 +4,18 @@ import type { DatosWizard } from '@/components/wizard/WizardCreacion'
 import { getConfig, isValidSecret } from '@/lib/config'
 
 const MAX_TOKENS_POR_PLAN = {
-  basico:  20_000,   // ↑ 6k→20k  · landing 1 página con logo + AOS completo
-  pro:     12_000,   // · SPA 4 páginas simplificada
-  premium: 28_000,   // · sitio premium con animaciones
-  broker:  20_000,   // · portal inmobiliario
+  basico:  60_000,   // ↑ 20k→60k  · landing 1 página con Sonnet 4.6
+  pro:     60_000,   // ↑ 12k→60k  · SPA 4 páginas con Sonnet 4.6
+  premium: 60_000,   // ↑ 28k→60k  · sitio premium con Sonnet 4.6
+  broker:  60_000,   // ↑ 20k→60k  · portal inmobiliario con Sonnet 4.6
 }
 
-// Haiku es 3-5x más rápido que Sonnet — suficiente calidad para basico/pro.
-// Sonnet se reserva para premium/broker donde la complejidad lo justifica.
+// claude-sonnet-4-6 para todos los planes — máxima calidad.
 const MODELO_POR_PLAN: Record<string, string> = {
-  basico:  'claude-haiku-4-5',
-  pro:     'claude-haiku-4-5',
-  premium: 'claude-sonnet-4-5',
-  broker:  'claude-sonnet-4-5',
+  basico:  'claude-sonnet-4-6',
+  pro:     'claude-sonnet-4-6',
+  premium: 'claude-sonnet-4-6',
+  broker:  'claude-sonnet-4-6',
 }
 
 export interface ResultadoGeneracion {
