@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Zap, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
@@ -30,7 +30,14 @@ function LoginContent() {
       setError('Email o contraseña incorrectos')
       setLoading(false)
     } else {
-      router.push(callbackUrl)
+      // Leer la sesión para saber el rol y redirigir correctamente
+      const session = await getSession()
+      const rol = (session?.user as any)?.rol
+      if (rol === 'admin' && callbackUrl === '/dashboard') {
+        router.push('/admin')
+      } else {
+        router.push(callbackUrl)
+      }
     }
   }
 
