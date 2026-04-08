@@ -4,10 +4,19 @@ import type { DatosWizard } from '@/components/wizard/WizardCreacion'
 import { getConfig, isValidSecret } from '@/lib/config'
 
 const MAX_TOKENS_POR_PLAN = {
-  basico: 8000,
-  pro: 16000,
-  premium: 64000,
-  broker: 32000,
+  basico:   6_000,   // ↓ 8k→6k  · landing 1 página
+  pro:     12_000,   // ↓ 16k→12k · SPA 4 páginas simplificada
+  premium: 28_000,   // ↓ 64k→28k · sitio premium con animaciones
+  broker:  20_000,   // ↓ 32k→20k · portal inmobiliario
+}
+
+// Haiku es 3-5x más rápido que Sonnet — suficiente calidad para basico/pro.
+// Sonnet se reserva para premium/broker donde la complejidad lo justifica.
+const MODELO_POR_PLAN: Record<string, string> = {
+  basico:  'claude-3-5-haiku-20241022',
+  pro:     'claude-3-5-haiku-20241022',
+  premium: 'claude-sonnet-4-5',
+  broker:  'claude-sonnet-4-5',
 }
 
 export interface ResultadoGeneracion {
@@ -18,9 +27,11 @@ export interface ResultadoGeneracion {
 
 // Carga configuración dinámica desde DB con fallbacks a constantes
 async function getGeneratorConfig(plan: 'basico' | 'pro' | 'premium' | 'broker') {
-  const [systemPromptDB, modelo, maxTokensStr, apiKeyDB] = await Promise.all([
+  const planModelo = MODELO_POR_PLAN[plan] ?? 'claude-sonnet-4-5'
+  const [systemPromptDB, modeloGlobal, modeloPlan, maxTokensStr, apiKeyDB] = await Promise.all([
     getConfig(`system_prompt_${plan}`, ''),
-    getConfig('modelo_claude', 'claude-sonnet-4-6'),
+    getConfig('modelo_claude', ''),          // override global opcional
+    getConfig(`modelo_claude_${plan}`, ''),  // override por plan (más específico)
     getConfig(`max_tokens_${plan}`, String(MAX_TOKENS_POR_PLAN[plan])),
     getConfig('anthropic_api_key', ''),
   ])
@@ -28,6 +39,12 @@ async function getGeneratorConfig(plan: 'basico' | 'pro' | 'premium' | 'broker')
     ? systemPromptDB
     : getSystemPrompt(plan)
   const maxTokens = parseInt(maxTokensStr) || MAX_TOKENS_POR_PLAN[plan]
+  // Prioridad: modelo por plan (DB) > modelo global (DB) > constante por plan
+  const modelo = (modeloPlan && modeloPlan.trim())
+    ? modeloPlan.trim()
+    : (modeloGlobal && modeloGlobal.trim())
+    ? modeloGlobal.trim()
+    : planModelo
   const apiKey = isValidSecret(apiKeyDB) ? apiKeyDB : process.env.ANTHROPIC_API_KEY!
   return { systemPrompt, modelo, maxTokens, apiKey }
 }

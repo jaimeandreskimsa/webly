@@ -1,20 +1,19 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Loader2, Zap, CheckCircle2, AlertCircle, ChevronRight, Terminal } from 'lucide-react'
 
-// Estimación de chars totales por plan (tokens × 4 chars aprox.)
+// Estimación de chars totales por plan (tokens × 4 chars aprox. | ajustado a nuevos límites)
 const CHARS_ESPERADOS: Record<string, number> = {
-  basico: 30_000,
-  pro: 60_000,
-  premium: 110_000,
-  broker: 80_000,
+  basico:  22_000,  // 6k tokens × ~3.7 chars
+  pro:     45_000,  // 12k tokens × ~3.7 chars
+  premium: 100_000, // 28k tokens × ~3.6 chars
+  broker:  72_000,  // 20k tokens × ~3.6 chars
 }
 
 // Mensaje real basado en el porcentaje de progreso
 function fraseSegunProgreso(p: number): string {
-  if (p >= 100) return 'Sitio generado exitosamente'
   if (p < 5)  return 'Conectando con Claude AI...'
   if (p < 15) return 'Analizando los datos de tu negocio...'
   if (p < 25) return 'Definiendo la estructura de páginas...'
@@ -23,8 +22,8 @@ function fraseSegunProgreso(p: number): string {
   if (p < 65) return 'Aplicando animaciones y efectos...'
   if (p < 75) return 'Agregando JavaScript e interactividad...'
   if (p < 85) return 'Optimizando para SEO y mobile...'
-  if (p < 95) return 'Revisando el código final...'
-  return 'Guardando tu sitio...'
+  if (p < 93) return 'Revisando el código final...'
+  return 'Guardando tu sitio... casi listo ✨'
 }
 
 function GenerandoContent() {
@@ -46,29 +45,9 @@ function GenerandoContent() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const terminalRef = useRef<HTMLDivElement>(null)
   const lastChunkTimeRef = useRef<number>(Date.now())
-  const hasReceivedChunksRef = useRef(false)
-
-  // Marcar como completado: anima suavemente hasta 100% y redirige
-  const marcarCompletado = useCallback(() => {
-    if (completedRef.current) return
-    completedRef.current = true
-    // Animar progreso hasta 100% suavemente
-    const animateToComplete = () => {
-      setProgreso(prev => {
-        if (prev >= 100) {
-          setEstado('listo')
-          setTimeout(() => router.push(`/dashboard/sitios/${sitioId}`), 1800)
-          return 100
-        }
-        const step = Math.max(1, (100 - prev) * 0.3)
-        requestAnimationFrame(animateToComplete)
-        return Math.min(100, prev + step)
-      })
-    }
-    requestAnimationFrame(animateToComplete)
-  }, [router, sitioId])
 
   // Restaurar progreso de sessionStorage al montar (persiste entre navegaciones).
+  // Esto corre antes de que llegue el catchup del SSE, evitando el salto visual de 0%.
   useEffect(() => {
     const key = `gen_progress_${sitioId}`
     const stored = sessionStorage.getItem(key)
@@ -76,8 +55,7 @@ function GenerandoContent() {
       const p = parseFloat(stored)
       if (p > 0 && p < 100) {
         setProgreso(p)
-        // Marcar que ya recibimos chunks si el progreso guardado era significativo
-        if (p > 10) hasReceivedChunksRef.current = true
+        charsRef.current = p  // previene que el stuck-detector dispare prematuramente
       }
     }
   }, [sitioId])
@@ -100,26 +78,24 @@ function GenerandoContent() {
   }, [htmlOutput])
 
   // Safety net: si los chunks dejaron de llegar pero done nunca llegó,
-  // polleamos DB directamente para detectar la finalización.
+  // es porque el mensaje se perdió (Railway flush race). Polleamos DB directamente.
   useEffect(() => {
     if (estado !== 'generando') return
     const check = setInterval(() => {
       if (completedRef.current) return
-      // Si no hemos recibido chunks aún, solo pollear después de 15s (tolerancia de arranque)
-      if (!hasReceivedChunksRef.current) {
-        const sinceStart = Date.now() - lastChunkTimeRef.current
-        if (sinceStart < 15000) return
-      } else {
-        const sinceChunk = Date.now() - lastChunkTimeRef.current
-        if (sinceChunk < 5000) return // chunks recientes — esperar
-      }
-      // Pollear DB para detectar finalización
+      if (charsRef.current < 500) return // aún no ha empezado
+      const sinceChunk = Date.now() - lastChunkTimeRef.current
+      if (sinceChunk < 8000) return // chunks recientes — esperar
+      // Han pasado 8s sin chunks: Claude terminó, DB guardado, done se perdió
       fetch(`/api/sitios/${sitioId}`)
-        .then(r => { if (!r.ok) throw new Error(); return r.json() })
+        .then(r => r.json())
         .then(({ sitio: s }) => {
           if (completedRef.current) return
           if (s?.estado === 'borrador' || s?.estado === 'publicado') {
-            marcarCompletado()
+            completedRef.current = true
+            setProgreso(100)
+            setEstado('listo')
+            setTimeout(() => router.push(`/dashboard/sitios/${sitioId}`), 1500)
           } else if (s?.estado === 'error') {
             completedRef.current = true
             setErrorMsg('El servidor encontró un error al guardar el sitio.')
@@ -127,9 +103,9 @@ function GenerandoContent() {
           }
         })
         .catch(() => {})
-    }, 2500)
+    }, 3000)
     return () => clearInterval(check)
-  }, [estado, sitioId, marcarCompletado])
+  }, [estado, sitioId, router])
 
   // Progreso suave base (avanza despacio independientemente de los chunks)
   useEffect(() => {
@@ -137,12 +113,11 @@ function GenerandoContent() {
     const iv = setInterval(() => {
       setProgreso(p => {
         if (completedRef.current) return p
-        if (p < 20)  return Math.min(20,  p + 0.8)   // llega a 20% en ~50s
-        if (p < 50)  return Math.min(50,  p + 0.4)    // llega a 50% en ~2.5 min
-        if (p < 80)  return Math.min(80,  p + 0.15)   // llega a 80% en ~4 min
-        if (p < 92)  return Math.min(92,  p + 0.08)   // llega a 92% lentamente
-        // Después de 92%: avanza muy lento hacia 98% máx (nunca 99 para que no parezca pegado)
-        return Math.min(98, p + 0.04)
+        if (p < 30)  return Math.min(30,  p + 1.2)   // llega a 30% en ~50s
+        if (p < 60)  return Math.min(60,  p + 0.5)   // llega a 60% en ~60s más
+        if (p < 88)  return Math.min(88,  p + 0.18)  // llega a 88% en ~3 min más
+        // Después de 88%: avanza hacia 99% (no freezear visualmente)
+        return Math.min(99, p + 0.12)
       })
     }, 2000)
     return () => clearInterval(iv)
@@ -162,20 +137,20 @@ function GenerandoContent() {
         if (data.catchup) {
           const len = (data.catchup as string).length
           charsRef.current = len
-          hasReceivedChunksRef.current = true
           lastChunkTimeRef.current = Date.now()
           setHtmlOutput(data.catchup)
           const esperado = CHARS_ESPERADOS[planRef.current] ?? 60_000
-          setProgreso(prev => Math.max(prev, Math.min(88, (len / esperado) * 100)))
+          // Saltar directamente al porcentaje correcto (sin animar desde 0)
+          setProgreso(Math.min(88, (len / esperado) * 100))
         }
 
         if (data.chunk) {
           charsRef.current += data.chunk.length
-          hasReceivedChunksRef.current = true
           lastChunkTimeRef.current = Date.now()
           const esperado = CHARS_ESPERADOS[planRef.current] ?? 60_000
           const pctReal = Math.min(88, (charsRef.current / esperado) * 100)
           setProgreso(p => Math.max(p, pctReal))
+          // Acumular HTML para visualización (máx. 120k chars para no saturar DOM)
           setHtmlOutput(prev => {
             const next = prev + data.chunk
             return next.length > 120_000 ? next.slice(-120_000) : next
@@ -191,8 +166,11 @@ function GenerandoContent() {
         }
 
         if (data.done) {
+          completedRef.current = true
+          setProgreso(100)
+          setEstado('listo')
           es.close()
-          marcarCompletado()
+          setTimeout(() => router.push(`/dashboard/sitios/${sitioId}`), 2000)
         }
 
         if (data.error) {
@@ -205,8 +183,8 @@ function GenerandoContent() {
     }
 
     es.onerror = () => {
-      // EventSource se desconectó. La generación sigue en background.
-      // Cambiamos a polling HTTP.
+      // EventSource se desconectó (tab cambió, red cortada, etc.).
+      // La generación sigue en background en Railway. Cambiamos a polling HTTP.
       setTimeout(() => {
         if (completedRef.current) return
         es.close()
@@ -218,7 +196,10 @@ function GenerandoContent() {
             const { sitio: s } = await res.json()
             if (s?.estado === 'borrador' || s?.estado === 'publicado') {
               clearInterval(pollRef.current!)
-              marcarCompletado()
+              completedRef.current = true
+              setProgreso(100)
+              setEstado('listo')
+              setTimeout(() => router.push(`/dashboard/sitios/${sitioId}`), 2000)
             } else if (s?.estado === 'error') {
               clearInterval(pollRef.current!)
               completedRef.current = true
@@ -226,7 +207,7 @@ function GenerandoContent() {
               setEstado('error')
             }
           } catch {}
-        }, 2500)
+        }, 3000)
       }, 300)
     }
 
@@ -234,7 +215,7 @@ function GenerandoContent() {
       if (!completedRef.current) es.close()
       if (pollRef.current) clearInterval(pollRef.current)
     }
-  }, [sitioId, iniciado, router, marcarCompletado])
+  }, [sitioId, iniciado, router])
 
   return (
     <div className="min-h-screen bg-[#080B14] bg-grid flex items-center justify-center">

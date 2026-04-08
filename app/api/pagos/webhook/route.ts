@@ -69,7 +69,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Parsear la referencia: "{sitioId}|{userId}|{plan}|{tipo}"
-    const referencia = estadoPago.commerceOrder || pagoRegistrado.flowOrder || ''
+    // IMPORTANTE: usar flowOrder del DB (contiene pipes), NO commerceOrder de Flow.
+    // commerceOrder es la forma compacta sin pipes (límite 45 chars de Flow),
+    // por lo que estadoPago.commerceOrder NO se puede parsear con split('|').
+    const referencia = pagoRegistrado.flowOrder || ''
     const partes = referencia.split('|')
     const [sitioId, userId, plan, tipo] = partes
 

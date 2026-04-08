@@ -100,14 +100,18 @@ const datosIniciales: DatosWizard = {
 }
 
 interface WizardCreacionProps {
-  planInicial: 'basico' | 'pro' | 'premium' | 'broker'
+  planInicial: string
   userId: string
+  planPagado?: string | null   // usuario ya pagó este plan → saltar paso de pago
+  isAdmin?: boolean            // admin puede generar sin pago
 }
 
-export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
+export function WizardCreacion({ planInicial, userId, planPagado, isAdmin }: WizardCreacionProps) {
+  const puedeCrearSinPago = !!planPagado || !!isAdmin
   const router = useRouter()
-  const [paso, setPaso] = useState(1)
-  const [datos, setDatos] = useState<DatosWizard>({ ...datosIniciales, plan: planInicial })
+  // Si ya pagó o es admin, saltar step 1 (resumen de pago) e ir directo al negocio
+  const [paso, setPaso] = useState(puedeCrearSinPago ? 2 : 1)
+  const [datos, setDatos] = useState<DatosWizard>({ ...datosIniciales, plan: (planInicial as DatosWizard['plan']) ?? 'pro' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -119,7 +123,8 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
   }
 
   function irAPaso(numeroPaso: number) {
-    if (numeroPaso < 1 || numeroPaso > pasos.length) return
+    const minPaso = puedeCrearSinPago ? 2 : 1
+    if (numeroPaso < minPaso || numeroPaso > pasos.length) return
     setError('')
     setPaso(numeroPaso)
   }
@@ -134,7 +139,8 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
   }
 
   function anterior() {
-    if (paso > 1) {
+    const minPaso = puedeCrearSinPago ? 2 : 1
+    if (paso > minPaso) {
       setError('')
       setPaso(p => p - 1)
     }
@@ -158,12 +164,8 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
         throw new Error(e.error || 'Error al crear el sitio')
       }
       const { sitio } = await resSitio.json()
-      const resActivar = await fetch('/api/dev/activar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sitioId: sitio.id }),
-      })
-      if (!resActivar.ok) throw new Error('Error al activar el sitio')
+      // El GET /api/generar arranca la generación en background automáticamente.
+      // No hace falta activar manualmente el sitio.
       router.push(`/dashboard/sitios/${sitio.id}/generando`)
     } catch (err: any) {
       setError(err.message || 'Error al procesar. Intenta de nuevo.')
@@ -224,7 +226,7 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
           {pasos.map((p) => {
             const isCompleted = paso > p.id
             const isCurrent = paso === p.id
-            const isReachable = p.id <= paso
+            const isReachable = p.id <= paso && (!puedeCrearSinPago || p.id >= 2)
 
             return (
               <button
@@ -300,8 +302,8 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
 
       {/* Navegación */}
       <div className="space-y-3">
-        {/* Dev mode: skip pago */}
-        {esUltimoPaso && process.env.NODE_ENV === 'development' && (
+        {/* Dev mode: skip pago (solo en desarrollo y el usuario no está exento de pago) */}
+        {esUltimoPaso && !puedeCrearSinPago && process.env.NODE_ENV === 'development' && (
           <div className="rounded-xl border border-dashed border-yellow-500/40 bg-yellow-500/5 p-4 space-y-3">
             <div className="flex items-center gap-2 text-yellow-400 text-xs font-semibold">
               <Zap className="w-3.5 h-3.5" />
@@ -323,7 +325,7 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
         <div className="flex items-center justify-between">
           <button
             onClick={anterior}
-            disabled={paso === 1 || loading}
+            disabled={paso === (puedeCrearSinPago ? 2 : 1) || loading}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl glass glass-hover text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -335,16 +337,29 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
           </span>
 
           {esUltimoPaso ? (
-            <button
-              onClick={iniciarPago}
-              disabled={loading}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl btn-gradient text-white text-sm font-bold hover:scale-105 transition-transform glow-purple disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
-            >
-              {loading
-                ? <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>
-                : <><CreditCard className="w-4 h-4" /> Pagar {formatCLP(PLAN_PRECIOS[datos.plan])}</>
-              }
-            </button>
+            puedeCrearSinPago ? (
+              <button
+                onClick={generarSinPago}
+                disabled={loading}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl btn-gradient text-white text-sm font-bold hover:scale-105 transition-transform glow-purple disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+              >
+                {loading
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Creando sitio...</>
+                  : <><Zap className="w-4 h-4" /> Crear sitio</>
+                }
+              </button>
+            ) : (
+              <button
+                onClick={iniciarPago}
+                disabled={loading}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl btn-gradient text-white text-sm font-bold hover:scale-105 transition-transform glow-purple disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+              >
+                {loading
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>
+                  : <><CreditCard className="w-4 h-4" /> Pagar {formatCLP(PLAN_PRECIOS[datos.plan as keyof typeof PLAN_PRECIOS])}</>
+                }
+              </button>
+            )
           ) : (
             <button
               onClick={siguiente}
