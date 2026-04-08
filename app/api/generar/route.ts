@@ -5,7 +5,7 @@ import { eq, max } from 'drizzle-orm'
 import { generarSitio } from '@/lib/claude/generator'
 import type { DatosWizard } from '@/components/wizard/WizardCreacion'
 
-export const maxDuration = 300 // 5 minutos para generación larga
+export const maxDuration = 300 // 5 minutos para generación larga — aplica a POST y GET
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -132,6 +132,7 @@ export async function GET(req: NextRequest) {
   const datos = sitio.contenidoJson as unknown as DatosWizard
 
   const { generarSitioStream } = await import('@/lib/claude/generator')
+  const { getConfig } = await import('@/lib/config')
 
   const encoder = new TextEncoder()
   let htmlAcumulado = ''
@@ -142,7 +143,13 @@ export async function GET(req: NextRequest) {
         await db
           .update(sitios)
           .set({ estado: 'generando' })
-          .where(eq(sitios.id, sitioId))
+          .where(eq(sitios.id, sitioId!))
+
+        const modelo = await getConfig('modelo_claude', 'claude-sonnet-4-6')
+
+        // Enviar plan al cliente para calibrar barra de progreso
+        const plan = datos.plan ?? 'pro'
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ plan })}\n\n`))
 
         for await (const chunk of generarSitioStream(datos)) {
           htmlAcumulado += chunk
@@ -153,21 +160,21 @@ export async function GET(req: NextRequest) {
         const [{ maxVersion }] = await db
           .select({ maxVersion: max(versionesSitio.numeroVersion) })
           .from(versionesSitio)
-          .where(eq(versionesSitio.sitioId, sitioId))
+          .where(eq(versionesSitio.sitioId, sitioId!))
 
         const nuevaVersion = (maxVersion ?? 0) + 1
 
         await db
           .update(versionesSitio)
           .set({ esActual: false })
-          .where(eq(versionesSitio.sitioId, sitioId))
+          .where(eq(versionesSitio.sitioId, sitioId!))
 
         await db.insert(versionesSitio).values({
-          sitioId,
+          sitioId: sitioId!,
           numeroVersion: nuevaVersion,
           htmlCompleto: htmlAcumulado,
           esActual: true,
-          modeloUsado: 'claude-sonnet-4-6',
+          modeloUsado: modelo,
         })
 
         await db
@@ -176,16 +183,23 @@ export async function GET(req: NextRequest) {
             estado: 'borrador',
             totalEdiciones: nuevaVersion,
             ultimaEdicion: new Date(),
+            updatedAt: new Date(),
           })
-          .where(eq(sitios.id, sitioId))
+          .where(eq(sitios.id, sitioId!))
 
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ done: true, version: nuevaVersion })}\n\n`)
         )
         controller.close()
       } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Error generando sitio'
+        console.error('Error en streaming generación:', msg, err)
+        // Marcar como error en DB
+        try {
+          await db.update(sitios).set({ estado: 'error' }).where(eq(sitios.id, sitioId!))
+        } catch {}
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ error: 'Error generando sitio' })}\n\n`)
+          encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`)
         )
         controller.close()
       }
