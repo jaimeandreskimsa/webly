@@ -6,8 +6,8 @@ import { getConfig, isValidSecret } from '@/lib/config'
 const MAX_TOKENS_POR_PLAN = {
   basico: 8000,
   pro: 16000,
-  premium: 32000,
-  broker: 24000,
+  premium: 64000,
+  broker: 32000,
 }
 
 export interface ResultadoGeneracion {

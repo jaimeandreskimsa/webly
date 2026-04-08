@@ -49,6 +49,7 @@ export interface DatosWizard {
     whatsapp?: string
     linkedin?: string
   }
+  sitiosReferencia: string[]
   propiedadesIniciales?: PropiedadWizard[]
 }
 
@@ -94,6 +95,7 @@ const datosIniciales: DatosWizard = {
   direccion: '',
   horario: '',
   redesSociales: {},
+  sitiosReferencia: ['', ''],
   propiedadesIniciales: [],
 }
 
@@ -285,9 +287,9 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
         {paso === 3 && <StepServicios datos={datos} onChange={actualizarDatos} />}
 
         {paso === 4 && datos.plan === 'broker' && <StepPropiedades datos={datos} onChange={actualizarDatos} />}
-        {paso === 4 && datos.plan !== 'broker' && <StepDiseno datos={datos} onChange={actualizarDatos} />}
+        {paso === 4 && datos.plan !== 'broker' && <StepDiseno datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
 
-        {paso === 5 && datos.plan === 'broker' && <StepDiseno datos={datos} onChange={actualizarDatos} />}
+        {paso === 5 && datos.plan === 'broker' && <StepDiseno datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
         {paso === 5 && datos.plan !== 'broker' && <StepMedia datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
 
         {paso === 6 && datos.plan === 'broker' && <StepMedia datos={datos} onChange={actualizarDatos} plan={datos.plan} />}

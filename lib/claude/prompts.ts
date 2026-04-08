@@ -331,7 +331,7 @@ Cada sección debe tener identidad visual propia — NO repitas el mismo layout 
 - **Preview servicios**: var(--bg-alt) gris claro con cards glassmorphism
 - **Por qué elegirnos**: fondo con color de marca (var(--primary)) + texto blanco
 - **Testimonios**: var(--bg) blanco con Swiper coverflow
-- **CTA banner**: gradiente animado de marca, botón magnetic
+- **CTA banner**: gradiente animado de marca, botón con hover scale
 - **Footer**: muy oscuro (#080c14), columnas, links, redes
 
 ## ANTI-PATRONES PROHIBIDOS ❌
@@ -395,11 +395,11 @@ El menú resalta la página activa. Al cambiar de página: transición suave con
 2. **Header** transparente → glassmorphism al scroll; nav con links a las 4 páginas; menú hamburguesa mobile ultra-animado; Dark/Light mode toggle
 3. **Hero con Slider** (Swiper obligatorio, mínimo 3 slides): cada slide con imagen parallax de fondo, headline dividido en palabras animadas con GSAP, subtítulo y 2 CTAs. Efecto creative o fade. Partículas CSS flotando sobre el hero.
 4. **Stats/Impacto**: counters GSAP dramáticos + progress bars animadas
-5. **Preview Servicios**: 3 cards con efecto 3D tilt al hover (CSS perspective)
+5. **Preview Servicios**: 3 cards con hover scale + sombra elevada
 6. **Por qué elegirnos**: íconos + texto con stagger GSAP impecable
 7. **Proceso**: timeline vertical animado paso a paso
 8. **Testimonios**: Swiper coverflow con fotos, estrellas, empresa
-9. **CTA Aurora**: banner con gradient animado tipo aurora borealis + botón magnetic
+9. **CTA Aurora**: banner con gradient animado tipo aurora borealis + botón hover destacado
 10. **Footer**: mega-footer con columnas, redes sociales, copyright
 
 ### SERVICIOS
@@ -494,29 +494,7 @@ gsap.utils.toArray('.counter').forEach(el => {
   });
 });
 
-// 6. Cards 3D tilt
-document.querySelectorAll('.card-3d').forEach(card => {
-  card.addEventListener('mousemove', e => {
-    const r = card.getBoundingClientRect();
-    const x = ((e.clientX - r.left) / r.width - 0.5) * 20;
-    const y = ((e.clientY - r.top) / r.height - 0.5) * -20;
-    gsap.to(card, { rotationY: x, rotationX: y, duration: 0.4, ease: 'power2.out', transformPerspective: 800 });
-  });
-  card.addEventListener('mouseleave', () => {
-    gsap.to(card, { rotationY: 0, rotationX: 0, duration: 0.6, ease: 'elastic.out(1, 0.5)' });
-  });
-});
-
-// 7. Botones magnetic
-document.querySelectorAll('.magnetic').forEach(btn => {
-  btn.addEventListener('mousemove', e => {
-    const r = btn.getBoundingClientRect();
-    gsap.to(btn, { x: (e.clientX - r.left - r.width/2) * 0.35, y: (e.clientY - r.top - r.height/2) * 0.35, duration: 0.3 });
-  });
-  btn.addEventListener('mouseleave', () => gsap.to(btn, { x: 0, y: 0, duration: 0.6, ease: 'elastic.out(1, 0.4)' }));
-});
-
-// 8. Page transitions
+// 6. Page transitions
 function showPage(pageId) {
   const pages = ['inicio', 'servicios', 'nosotros', 'contacto'];
   gsap.to('.page-content', { opacity: 0, y: 20, duration: 0.3, ease: 'power2.in', onComplete: () => {
@@ -539,11 +517,13 @@ showPage(pages2.includes(hash) ? hash : 'inicio');
 \`\`\`
 
 ## EFECTOS VISUALES PREMIUM OBLIGATORIOS
-- **Cursor personalizado**: círculo grande que sigue al mouse con lag (GSAP lerp), se achica al hacer hover en links
+- **NO incluir cursor personalizado** — NO uses custom cursor ni animaciones que sigan al mouse
+- **NO incluir botones magnetic** — NO uses efectos que muevan el botón al pasar el mouse
+- **NO incluir 3D tilt en cards** — NO uses rotación 3D que siga al mouse en cards
 - **Partículas CSS hero**: 20+ partículas flotando con animation keyframes aleatorios (sin librería)
 - **Gradient aurora**: background animado con múltiples radial-gradient en movimiento en secciones CTA
 - **Noise texture**: SVG feTurbulence overlay sutil (opacity 0.03) en hero
-- **Sheen effect**: brillo diagonal que pasa por las cards al hover
+- **Sheen effect**: brillo diagonal que pasa por las cards al hover (CSS only, no mouse tracking)
 - **Progress bar de scroll**: línea fina en el top de la pantalla que avanza según scroll
 - **Dark/Light mode**: toggle con transición suave vía CSS variables + localStorage
 - **Floating WhatsApp**: botón fijo bottom-right con pulse verde, tooltip al hover
@@ -628,9 +608,9 @@ Implementa todo esto en el <head> y en el código:
 ## ANTI-PATRONES PROHIBIDOS ❌ (nivel PREMIUM — tolerancia cero)
 - ❌ Loader genérico de spinner — el loader DEBE ser branded (logo o marca con reveal animado)
 - ❌ Colores incorrectos — usa EXACTAMENTE la paleta del cliente, nunca azul/gris por defecto
-- ❌ Custom cursor desactivado o invisible — debe verse en todo momento excepto en mobile
+- ❌ Custom cursor o animaciones que siguen al mouse — NO incluir nunca, son molestas en mobile y confusas en desktop
 - ❌ Locomotive Scroll sin inicializar o sin sincronización con ScrollTrigger
-- ❌ Botones sin efecto magnetic — todos los CTAs principales deben ser magnetic
+- ❌ Botones magnetic que se mueven al pasar el mouse — NO incluir, usar hover scale/color normal
 - ❌ Partículas CSS hero ausentes — siempre incluir aunque sean solo 12 partículas sutiles
 - ❌ Page transitions sin animación — el cambio de página debe ser un fade/slide suave
 - ❌ Secciones con padding insuficiente — mínimo 120px desktop, nunca menos
@@ -725,6 +705,12 @@ ${imagenesTexto}
 ${datos.logo ? `Logo del cliente: ${datos.logo}` : 'Sin logo — crear tipográfico con las iniciales'}
 ${datos.videoUrl ? `Video hero: ${datos.videoUrl}` : ''}
 
+${(() => {
+  const refs = (datos as any).sitiosReferencia?.filter((u: string) => u?.trim()) || []
+  return refs.length > 0
+    ? `## SITIOS WEB DE REFERENCIA\nEl cliente quiere un estilo visual similar a estos sitios:\n${refs.map((u: string) => `- ${u}`).join('\n')}\nAnaliza el estilo, layout, paleta y nivel de estos sitios y úsalos como inspiración para el diseño.\n`
+    : ''
+})()}
 ## INSTRUCCIONES ESPECIALES
 - Adapta TODO el contenido al rubro "${datos.rubro}" — usa terminología y ejemplos específicos del sector
 - El headline del hero debe ser poderoso, específico y orientado a la acción
@@ -733,6 +719,10 @@ ${datos.videoUrl ? `Video hero: ${datos.videoUrl}` : ''}
 - El formulario de contacto debe tener validación JS y mostrar mensaje de éxito
 - Haz el sitio responsive perfecto: mobile, tablet, desktop
 - Incluye un floating button de WhatsApp visible en mobile
+- **NO incluyas cursor personalizado** que siga al mouse — es molesto en mobile y confuso
+- **NO incluyas botones magnetic** que se muevan al pasar el mouse
+- **NO incluyas efectos 3D tilt** en cards que sigan al mouse
+- Los hovers deben ser simples: scale, sombra, cambio de color — nada que rastree el mouse
 
 Genera el HTML COMPLETO del sitio. Que sea absolutamente impresionante.
 `
@@ -836,6 +826,18 @@ ${propiedadesTexto}
 3. **Diseño inmobiliario**: Fondo claro/blanco para las cards de propiedades, header oscuro o con imagen, secciones alternando colores del cliente.
 
 4. **SEO**: Title: "${datos.nombreEmpresa} — Propiedades en ${datos.ciudad || 'Chile'} | Venta y Arriendo"
+
+${(() => {
+  const refs = (datos as any).sitiosReferencia?.filter((u: string) => u?.trim()) || []
+  return refs.length > 0
+    ? `## SITIOS WEB DE REFERENCIA\nEl cliente quiere un estilo visual similar a estos sitios:\n${refs.map((u: string) => `- ${u}`).join('\n')}\nAnaliza el estilo, layout, paleta y nivel de estos sitios y úsalos como inspiración para el diseño.\n`
+    : ''
+})()}
+## INSTRUCCIONES ADICIONALES
+- **NO incluyas cursor personalizado** que siga al mouse — es molesto en mobile y confuso
+- **NO incluyas botones magnetic** que se muevan al pasar el mouse
+- **NO incluyas efectos 3D tilt** en cards que sigan al mouse
+- Los hovers deben ser simples: scale, sombra, cambio de color — nada que rastree el mouse
 
 Genera el HTML COMPLETO del portal inmobiliario. Que sea impresionante y funcional desde el primer día.
 `
@@ -1018,6 +1020,10 @@ function renderPropiedades(lista) {
 - Precio en color principal del cliente, tipografía grande y bold
 - Mobile-first: sidebar filtros colapsa en mobile como drawer/modal
 - Animaciones GSAP: reveal secciones, counter stats, cards stagger al cargar
+- **NO incluir cursor personalizado** — NO uses custom cursor ni animaciones que sigan al mouse
+- **NO incluir botones magnetic** — NO uses efectos que muevan el botón al pasar el mouse
+- **NO incluir 3D tilt en cards** — NO uses rotación 3D que siga al mouse en cards
+- Hovers simples: scale, sombra, cambio de color — nada que rastree el mouse
 
 ## FORMATO DE ENTREGA
 Un único archivo index.html completo, autocontenido.

@@ -1,6 +1,6 @@
 'use client'
 
-import { Sparkles, Check } from 'lucide-react'
+import { Sparkles, Check, Globe } from 'lucide-react'
 import type { DatosWizard } from '../WizardCreacion'
 
 const tiposDiseno = [
@@ -24,9 +24,10 @@ const tipografias = [
 interface Props {
   datos: DatosWizard
   onChange: (d: Partial<DatosWizard>) => void
+  plan?: string
 }
 
-export function StepDiseno({ datos, onChange }: Props) {
+export function StepDiseno({ datos, onChange, plan }: Props) {
   function aplicarMarca() {
     if (!datos.marcaAnalizada) return
     onChange({
@@ -162,6 +163,35 @@ export function StepDiseno({ datos, onChange }: Props) {
           ))}
         </div>
       </div>
+
+      {/* Sitios de referencia - solo para planes pro, premium y broker */}
+      {plan && plan !== 'basico' && (
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Globe className="w-4 h-4 text-indigo-400" />
+            <label className="block text-sm font-medium">Sitios web de referencia (opcional)</label>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Comparte hasta 2 sitios web que te gusten como referencia de estilo
+          </p>
+          <div className="grid md:grid-cols-2 gap-3">
+            {[0, 1].map(i => (
+              <input
+                key={i}
+                type="url"
+                value={datos.sitiosReferencia?.[i] || ''}
+                onChange={e => {
+                  const nuevos = [...(datos.sitiosReferencia || ['', ''])]
+                  nuevos[i] = e.target.value
+                  onChange({ sitiosReferencia: nuevos })
+                }}
+                placeholder="https://ejemplo.com"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500/50"
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
