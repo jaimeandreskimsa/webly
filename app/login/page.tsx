@@ -130,7 +130,7 @@ function LoginContent() {
         <p className="text-center text-sm text-muted-foreground mt-6">
           ¿No tienes cuenta?{' '}
           <Link href="/registro" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
-            Crear cuenta gratis
+            Crear cuenta
           </Link>
         </p>
       </div>

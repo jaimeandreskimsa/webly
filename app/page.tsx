@@ -1,9 +1,8 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import {
   Zap, Globe, Sparkles, Shield, ArrowRight, Check,
   Star, Rocket, Code2, Palette, BarChart3, MessageSquare,
-  ChevronRight, Play, Building2, ExternalLink
+  ChevronRight, Building2, ExternalLink
 } from 'lucide-react'
 
 // ─── Pricing Data ─────────────────────────────────────────────────────────────
@@ -120,8 +119,8 @@ const pasos = [
   },
   {
     numero: '02',
-    titulo: 'Ingresa tu contenido',
-    descripcion: 'Completa el wizard con los textos, servicios, fotos y datos de tu empresa.',
+    titulo: 'Paga e ingresa tu contenido',
+    descripcion: 'Completa el pago en segundos y luego llena el wizard con los textos, servicios, fotos y datos de tu empresa.',
     icon: Code2,
   },
   {
@@ -192,6 +191,9 @@ function Navbar() {
           <a href="#testimonios" className="text-sm text-muted-foreground hover:text-white transition-colors">
             Testimonios
           </a>
+          <a href="#faq" className="text-sm text-muted-foreground hover:text-white transition-colors">
+            FAQ
+          </a>
         </div>
 
         <div className="flex items-center gap-3">
@@ -200,12 +202,6 @@ function Navbar() {
             className="text-sm text-muted-foreground hover:text-white transition-colors px-4 py-2"
           >
             Iniciar sesión
-          </Link>
-          <Link
-            href="/registro"
-            className="text-sm font-medium px-4 py-2 rounded-lg btn-gradient text-white"
-          >
-            Comenzar gratis
           </Link>
         </div>
       </div>
@@ -254,10 +250,6 @@ function Hero() {
             Crear mi sitio ahora
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Link>
-          <button className="flex items-center gap-2 glass glass-hover text-white font-medium px-8 py-4 rounded-xl text-lg">
-            <Play className="w-5 h-5 text-indigo-400" />
-            Ver demo
-          </button>
         </div>
 
         {/* Social proof */}
@@ -268,7 +260,7 @@ function Hero() {
                 <div key={i} className={`w-8 h-8 rounded-full ${color} border-2 border-background`} />
               ))}
             </div>
-            <span>+500 sitios creados</span>
+            <span>+50 sitios creados</span>
           </div>
           <div className="flex items-center gap-1">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -513,12 +505,12 @@ function Portfolio() {
                 </div>
                 {/* Screenshot */}
                 <div className="relative w-full aspect-[16/9] overflow-hidden bg-slate-900">
-                  <Image
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     src={`https://image.thum.io/get/width/1200/crop/675/noanimate/${sitio.url}`}
                     alt={`Preview de ${sitio.nombre}`}
-                    fill
-                    className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                    unoptimized
+                    loading="eager"
+                    className="absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                   />
                   {/* Overlay gradient bottom */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -547,7 +539,7 @@ function Portfolio() {
         {/* Stats bar */}
         <div className="mt-12 grid grid-cols-3 gap-4 max-w-lg mx-auto">
           {[
-            { num: '4+', label: 'sitios publicados' },
+            { num: '50+', label: 'sitios publicados' },
             { num: '< 5min', label: 'tiempo de generación' },
             { num: '100%', label: 'con IA' },
           ].map((s) => (
@@ -620,7 +612,7 @@ function CTA() {
               <span className="gradient-text">estar online hoy</span>
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
-              Más de 500 empresas ya tienen su sitio web creado con WeblyNow.
+              Más de 50 empresas ya tienen su sitio web creado con WeblyNow.
               La tuya puede ser la próxima en minutos.
             </p>
             <Link
@@ -652,12 +644,100 @@ function Footer() {
             © 2026 WeblyNow · Todos los derechos reservados · Chile
           </p>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <a href="mailto:hello@weblynow.com" className="hover:text-white transition-colors">hello@weblynow.com</a>
             <a href="/terminos" className="hover:text-white transition-colors">Términos</a>
             <a href="/privacidad" className="hover:text-white transition-colors">Privacidad</a>
           </div>
         </div>
       </div>
     </footer>
+  )
+}
+
+// ─── FAQ Chat ────────────────────────────────────────────────────────────────
+
+const faqData = [
+  {
+    pregunta: '¿Cómo funciona WeblyNow?',
+    respuesta: 'Eliges un plan, completas un formulario con la info de tu negocio (nombre, servicios, colores, etc.) y nuestra IA genera un sitio web profesional completo en menos de 2 minutos. Luego puedes publicarlo con 1 click.',
+  },
+  {
+    pregunta: '¿Cuánto cuesta?',
+    respuesta: 'Tenemos 4 planes: Básico ($50.000), Pro ($100.000), Premium ($300.000) y Broker ($700.000). Es un pago único, sin mensualidades obligatorias. El precio incluye la generación del sitio y las ediciones del plan.',
+  },
+  {
+    pregunta: '¿Puedo editar mi sitio después?',
+    respuesta: 'Sí. El plan Básico incluye 1 edición, y los planes Pro, Premium y Broker incluyen 5 ediciones. Solo describes los cambios en texto y la IA los aplica automáticamente.',
+  },
+  {
+    pregunta: '¿Necesito saber programar?',
+    respuesta: 'No. Solo necesitas completar un formulario con la información de tu negocio. La IA se encarga de todo el diseño, código, animaciones y optimización.',
+  },
+  {
+    pregunta: '¿Cómo publico mi sitio?',
+    respuesta: 'Desde tu dashboard puedes publicar con 1 click en Vercel (hosting gratuito con SSL). También puedes descargar el ZIP y subirlo a tu propio hosting. Incluimos una guía paso a paso para configurar tu dominio propio.',
+  },
+  {
+    pregunta: '¿Qué incluye el plan Broker?',
+    respuesta: 'Un portal inmobiliario completo con gestión de propiedades, filtros avanzados, galería de fotos, integración WhatsApp por propiedad y un panel para agregar/editar propiedades que se actualizan en tu web al instante.',
+  },
+  {
+    pregunta: '¿Qué métodos de pago aceptan?',
+    respuesta: 'Aceptamos tarjetas de crédito, débito y transferencia bancaria a través de Flow.cl, la plataforma de pagos más segura de Chile.',
+  },
+  {
+    pregunta: '¿Puedo usar mi propio dominio?',
+    respuesta: 'Sí. Todos los planes permiten conectar un dominio propio (.cl, .com, etc.). En tu dashboard encontrarás una guía paso a paso para configurar los DNS.',
+  },
+]
+
+function FAQChat() {
+  return (
+    <section className="py-24 px-6" id="faq">
+      <div className="max-w-3xl mx-auto">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-medium mb-4">
+            <MessageSquare className="w-3.5 h-3.5" />
+            Centro de ayuda
+          </div>
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
+            Preguntas{' '}
+            <span className="gradient-text">frecuentes</span>
+          </h2>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Resuelve tus dudas al instante. Si necesitas más ayuda, escríbenos a hello@weblynow.com
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {faqData.map((faq, i) => (
+            <details
+              key={i}
+              className="group glass rounded-xl border border-white/5 overflow-hidden"
+            >
+              <summary className="flex items-center justify-between px-5 py-4 cursor-pointer list-none hover:bg-white/5 transition-colors">
+                <span className="text-sm font-medium text-white pr-4">{faq.pregunta}</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 transition-transform group-open:rotate-90" />
+              </summary>
+              <div className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed border-t border-white/5 pt-3">
+                {faq.respuesta}
+              </div>
+            </details>
+          ))}
+        </div>
+
+        <div className="mt-8 text-center">
+          <p className="text-sm text-muted-foreground mb-3">¿No encontraste lo que buscas?</p>
+          <a
+            href="mailto:hello@weblynow.com"
+            className="inline-flex items-center gap-2 glass glass-hover text-white font-medium px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
+          >
+            <MessageSquare className="w-4 h-4 text-indigo-400" />
+            Escríbenos a hello@weblynow.com
+          </a>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -672,6 +752,7 @@ export default function LandingPage() {
       <Portfolio />
       <Planes />
       <Testimonios />
+      <FAQChat />
       <CTA />
       <Footer />
     </main>

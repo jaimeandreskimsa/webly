@@ -145,15 +145,11 @@
     background: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%);
     opacity: 0;
     transition: opacity 0.3s ease;
+    z-index: -1;
   }
 
   .btn-gradient:hover::after {
     opacity: 1;
-  }
-
-  .btn-gradient > * {
-    position: relative;
-    z-index: 1;
   }
 
   /* Orb animation */
