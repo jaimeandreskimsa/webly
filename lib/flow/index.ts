@@ -3,7 +3,7 @@ import { getConfig, isValidSecret } from '@/lib/config'
 import { PLAN_PRECIOS, PLAN_NOMBRES } from '@/lib/utils'
 
 // ─── Base URL ─────────────────────────────────────────────────────────────────
-async function getFlowBaseUrl(): Promise<string> {
+export async function getFlowBaseUrl(): Promise<string> {
   const sandbox = await getConfig('flow_sandbox', process.env.FLOW_SANDBOX || 'false')
   return sandbox === 'true'
     ? 'https://sandbox.flow.cl/api'
