@@ -64,6 +64,35 @@ export default async function AdminPage() {
         </p>
       </div>
 
+      {/* Herramientas de prueba */}
+      <div className="glass rounded-2xl border border-violet-500/30 p-5 bg-violet-500/5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center">
+            <FlaskConical className="w-4 h-4 text-violet-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-sm text-white">Herramientas de prueba</h3>
+            <p className="text-xs text-slate-400">Solo visible para admins · sin cobro</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/dashboard/nuevo?plan=demo"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 transition-all text-sm font-semibold"
+          >
+            <FlaskConical className="w-4 h-4" />
+            Crear sitio demo (salta pago)
+          </Link>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-all text-sm"
+          >
+            <Globe className="w-4 h-4" />
+            Ver como usuario
+          </Link>
+        </div>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard
@@ -146,35 +175,6 @@ export default async function AdminPage() {
           </div>
         </div>
       )}
-
-      {/* Herramientas de prueba */}
-      <div className="glass rounded-2xl border border-violet-500/20 p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-            <FlaskConical className="w-4 h-4 text-violet-400" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-sm text-white">Herramientas de prueba</h3>
-            <p className="text-xs text-slate-500">Solo visible para admins</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/dashboard/nuevo?plan=demo"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/20 transition-all text-sm font-semibold"
-          >
-            <FlaskConical className="w-4 h-4" />
-            Crear sitio demo (salta pago)
-          </Link>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-all text-sm"
-          >
-            <Globe className="w-4 h-4" />
-            Ver como usuario
-          </Link>
-        </div>
-      </div>
 
       {/* Tablas */}
       <div className="grid md:grid-cols-2 gap-6">
