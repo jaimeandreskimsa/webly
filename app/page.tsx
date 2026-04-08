@@ -395,7 +395,7 @@ function Planes() {
               </ul>
 
               <Link
-                href={`/dashboard/nuevo?plan=${plan.id}`}
+                href={`/registro?plan=${plan.id}`}
                 className={`w-full text-center py-3 px-6 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-[1.02] ${plan.ctaColor}`}
               >
                 {plan.cta}
