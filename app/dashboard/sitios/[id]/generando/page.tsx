@@ -44,10 +44,12 @@ function GenerandoContent() {
     if (estado !== 'generando') return
     const iv = setInterval(() => {
       setProgreso(p => {
-        if (p >= 88) return p
-        // Avance más rápido al principio, más lento al acercarse al techo
-        const increment = p < 30 ? 2.5 : p < 60 ? 1.5 : 0.6
-        return Math.min(88, p + increment)
+        if (completedRef.current) return p
+        if (p < 30)  return Math.min(30,  p + 1.2)   // llega a 30% en ~50s
+        if (p < 60)  return Math.min(60,  p + 0.5)   // llega a 60% en ~60s más
+        if (p < 88)  return Math.min(88,  p + 0.18)  // llega a 88% en ~3 min más
+        // Después de 88%: micro-movimiento para que no parezca frozen
+        return Math.min(96, p + 0.04)
       })
     }, 2000)
     return () => clearInterval(iv)
@@ -86,29 +88,31 @@ function GenerandoContent() {
 
         if (data.done) {
           completedRef.current = true
-          es.close()
           setProgreso(100)
           setEstado('listo')
+          es.close()
           setTimeout(() => router.push(`/dashboard/sitios/${sitioId}`), 2000)
         }
 
         if (data.error) {
           completedRef.current = true
-          es.close()
           setErrorMsg(data.error)
           setEstado('error')
+          es.close()
         }
       } catch {}
     }
 
     es.onerror = () => {
-      // EventSource dispara onerror también al cerrar limpiamente desde el server.
-      // Solo tratar como error real si no completamos.
-      if (!completedRef.current) {
-        es.close()
-        setErrorMsg('La conexión con el servidor fue interrumpida. Intenta de nuevo.')
-        setEstado('error')
-      }
+      // EventSource dispara onerror cuando el server cierra la conexión limpiamente.
+      // Esperamos 300ms para que onmessage (done/error) se procese primero.
+      setTimeout(() => {
+        if (!completedRef.current) {
+          es.close()
+          setErrorMsg('La conexión con el servidor fue interrumpida. Intenta de nuevo.')
+          setEstado('error')
+        }
+      }, 300)
     }
 
     return () => {

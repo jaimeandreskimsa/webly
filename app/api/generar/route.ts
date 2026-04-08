@@ -131,6 +131,16 @@ export async function GET(req: NextRequest) {
 
   const datos = sitio.contenidoJson as unknown as DatosWizard
 
+  // Si el sitio ya está en borrador/publicado, devolver done inmediatamente
+  // (evita regenerar si EventSource se auto-reconecta)
+  if (sitio.estado === 'borrador' || sitio.estado === 'publicado') {
+    const encoder2 = new TextEncoder()
+    return new Response(
+      encoder2.encode(`data: ${JSON.stringify({ done: true, cached: true })}\n\n`),
+      { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' } }
+    )
+  }
+
   const { generarSitioStream } = await import('@/lib/claude/generator')
   const { getConfig } = await import('@/lib/config')
 
@@ -199,6 +209,8 @@ export async function GET(req: NextRequest) {
           encoder.encode(`data: ${JSON.stringify({ done: true, version: nuevaVersion })}\n\n`)
         )
         clearInterval(heartbeat)
+        // Pequeño delay para garantizar que el done llega al cliente antes del close
+        await new Promise(r => setTimeout(r, 500))
         controller.close()
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error generando sitio'
