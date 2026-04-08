@@ -258,18 +258,16 @@ export function SitioCard({ sitio }: SitioCardProps) {
           </span>
 
           <div className="flex items-center gap-1">
-            {/* Previsualizar — visible y con texto */}
+            {/* Previsualizar — lleva a la página de detalle del sitio */}
             {(sitio.estado === 'borrador' || sitio.estado === 'publicado') && (
-              <a
-                href={sitio.deployUrl || `/api/sitios/${sitio.id}/preview`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href={`/dashboard/sitios/${sitio.id}`}
                 onClick={e => e.stopPropagation()}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-green-500/15 text-green-400 hover:text-green-300 transition-all text-xs font-medium"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 Previsualizar
-              </a>
+              </Link>
             )}
 
             <Tip label="Descargar ZIP">
