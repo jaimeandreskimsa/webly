@@ -44,10 +44,10 @@ export const PLAN_PRECIOS = {
 } as const
 
 export const PLAN_LIMITE_EDICIONES = {
-  basico: 0,
-  pro: 3,
-  premium: -1, // ilimitado
-  broker: -1,  // ilimitado
+  basico: 1,
+  pro: 5,
+  premium: 5,
+  broker: 5,
 } as const
 
 export const PLAN_NOMBRES = {

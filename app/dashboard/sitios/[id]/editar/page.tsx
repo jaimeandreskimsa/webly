@@ -1,5 +1,5 @@
 import { auth } from '@/auth'
-import { db, sitios, suscripciones, edicionesMensuales } from '@/lib/db'
+import { db, sitios } from '@/lib/db'
 import { eq, and } from 'drizzle-orm'
 import { redirect, notFound } from 'next/navigation'
 import { EditorSitio } from '@/components/dashboard/EditorSitio'
@@ -27,53 +27,33 @@ export default async function EditarSitioPage({
 
   if (!sitio) notFound()
 
-  // Verificar ediciones disponibles
-  const ahora = new Date()
-  let edicionesMes: typeof edicionesMensuales.$inferSelect | undefined
-  try {
-    const [row] = await db
-      .select()
-      .from(edicionesMensuales)
-      .where(
-        and(
-          eq(edicionesMensuales.userId, session.user.id as string),
-          eq(edicionesMensuales.sitioId, id),
-          eq(edicionesMensuales.mes, ahora.getMonth() + 1),
-          eq(edicionesMensuales.año, ahora.getFullYear())
-        )
-      )
-      .limit(1)
-    edicionesMes = row
-  } catch {
-    // tabla puede no existir aún en producción
-  }
-
   const limite = PLAN_LIMITE_EDICIONES[sitio.plan as keyof typeof PLAN_LIMITE_EDICIONES]
-  const edicionesUsadas = edicionesMes?.edicionesUsadas ?? 0
-  const puedeEditar = limite === -1 || edicionesUsadas < limite || limite === 0
+  // totalEdiciones cuenta las versiones generadas. La versión 1 es la creación,
+  // así que las ediciones reales son totalEdiciones - 1 (mínimo 0)
+  const edicionesUsadas = Math.max(0, (sitio.totalEdiciones ?? 1) - 1)
+  const puedeEditar = edicionesUsadas < limite
 
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-black mb-2">Editar sitio</h1>
         <p className="text-muted-foreground text-sm">
-          {limite === -1
-            ? 'Ediciones ilimitadas este mes'
-            : `${edicionesUsadas}/${limite} ediciones usadas este mes`}
+          {edicionesUsadas}/{limite} ediciones usadas · {sitio.nombre}
         </p>
       </div>
 
       {!puedeEditar ? (
-        <div className="glass rounded-2xl border border-orange-500/30 p-8 text-center">
-          <p className="font-semibold text-orange-400 mb-2">Límite de ediciones alcanzado</p>
-          <p className="text-muted-foreground text-sm mb-6">
-            Usaste todas las ediciones del mes. El contador se reinicia el 1 del próximo mes.
+        <div className="glass rounded-2xl border border-orange-500/30 p-8 text-center space-y-4">
+          <p className="font-semibold text-orange-400 text-lg">Límite de ediciones alcanzado</p>
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+            Usaste las {limite} ediciones incluidas en tu plan.
+            Para seguir editando, contrata un plan de ediciones mensuales.
           </p>
           <a
             href="/#planes"
             className="inline-flex items-center gap-2 btn-gradient text-white font-semibold px-6 py-3 rounded-xl text-sm"
           >
-            Actualizar plan para más ediciones
+            Ver planes de ediciones
           </a>
         </div>
       ) : (
