@@ -39,6 +39,7 @@ function GenerandoContent() {
   const charsRef = useRef(0)
   const completedRef = useRef(false)
   const planRef = useRef<string>('pro')
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Progreso suave base (avanza despacio independientemente de los chunks)
   useEffect(() => {
@@ -96,19 +97,37 @@ function GenerandoContent() {
     }
 
     es.onerror = () => {
-      // EventSource dispara onerror cuando el server cierra la conexión limpiamente.
-      // Esperamos 300ms para que onmessage (done/error) se procese primero.
+      // EventSource se desconectó (tab cambió, red cortada, etc.).
+      // La generación sigue en background en Railway. Cambiamos a polling HTTP.
       setTimeout(() => {
-        if (!completedRef.current) {
-          es.close()
-          setErrorMsg('La conexión con el servidor fue interrumpida. Intenta de nuevo.')
-          setEstado('error')
-        }
+        if (completedRef.current) return
+        es.close()
+        if (pollRef.current) clearInterval(pollRef.current)
+        pollRef.current = setInterval(async () => {
+          try {
+            const res = await fetch(`/api/sitios/${sitioId}`)
+            if (!res.ok) return
+            const { sitio: s } = await res.json()
+            if (s?.estado === 'borrador' || s?.estado === 'publicado') {
+              clearInterval(pollRef.current!)
+              completedRef.current = true
+              setProgreso(100)
+              setEstado('listo')
+              setTimeout(() => router.push(`/dashboard/sitios/${sitioId}`), 2000)
+            } else if (s?.estado === 'error') {
+              clearInterval(pollRef.current!)
+              completedRef.current = true
+              setErrorMsg('El servidor encontró un error generando el sitio.')
+              setEstado('error')
+            }
+          } catch {}
+        }, 3000)
       }, 300)
     }
 
     return () => {
       if (!completedRef.current) es.close()
+      if (pollRef.current) clearInterval(pollRef.current)
     }
   }, [sitioId, iniciado, router])
 
@@ -150,7 +169,7 @@ function GenerandoContent() {
 
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
-              No cierres esta ventana
+              Puedes navegar — el proceso sigue en segundo plano
             </div>
           </>
         )}

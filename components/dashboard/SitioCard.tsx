@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Globe, ExternalLink, Edit2, Download, Clock,
@@ -77,6 +77,22 @@ export function SitioCard({ sitio }: SitioCardProps) {
   const [deploying, setDeploying] = useState(false)
   const [deployError, setDeployError] = useState('')
   const [reanudando, setReanudando] = useState(false)
+
+  // Polling automático cuando el sitio está generando en background
+  useEffect(() => {
+    if (sitio.estado !== 'generando') return
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/sitios/${sitio.id}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.sitio?.estado === 'borrador' || data.sitio?.estado === 'publicado' || data.sitio?.estado === 'error') {
+          router.refresh()
+        }
+      } catch {}
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [sitio.estado, sitio.id, router])
 
   async function handleDelete() {
     setDeleting(true)
@@ -160,12 +176,24 @@ export function SitioCard({ sitio }: SitioCardProps) {
               }
               {reanudando ? 'Iniciando...' : 'Pagar ahora →'}
             </button>
+          ) : sitio.estado === 'generando' ? (
+            <Link
+              href={`/dashboard/sitios/${sitio.id}/generando`}
+              onClick={e => e.stopPropagation()}
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border hover:brightness-125 transition-all',
+                estado.bg, estado.color
+              )}
+            >
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Ver progreso →
+            </Link>
           ) : (
             <div className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border',
               estado.bg, estado.color
             )}>
-              <estado.icon className={cn('w-3 h-3', sitio.estado === 'generando' && 'animate-spin')} />
+              <estado.icon className="w-3 h-3" />
               {estado.label}
             </div>
           )}

@@ -106,7 +106,62 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ─── Streaming endpoint ───────────────────────────────────────────────────────
+// ─── Generación en background desacoplada del SSE ────────────────────────────
+// Railway es Node.js persistente: los Promises continúan aunque el cliente
+// cierre la conexión HTTP. Esto es fire-and-forget real.
+
+type GenStatus = {
+  status: 'running' | 'done' | 'error'
+  error?: string
+  version?: number
+  plan?: string
+}
+
+// Map en memoria del proceso: persiste entre requests en Railway
+const genStore = new Map<string, GenStatus>()
+
+async function generarEnBackground(sitioId: string, datos: DatosWizard) {
+  try {
+    await db.update(sitios).set({ estado: 'generando' }).where(eq(sitios.id, sitioId))
+    genStore.set(sitioId, { status: 'running', plan: datos.plan ?? 'pro' })
+
+    const resultado = await generarSitio(datos)
+
+    const [{ maxVersion }] = await db
+      .select({ maxVersion: max(versionesSitio.numeroVersion) })
+      .from(versionesSitio)
+      .where(eq(versionesSitio.sitioId, sitioId))
+
+    const nuevaVersion = (maxVersion ?? 0) + 1
+
+    await db.update(versionesSitio).set({ esActual: false }).where(eq(versionesSitio.sitioId, sitioId))
+    await db.insert(versionesSitio).values({
+      sitioId,
+      numeroVersion: nuevaVersion,
+      htmlCompleto: resultado.html,
+      esActual: true,
+      modeloUsado: resultado.modeloUsado,
+      tokensUsados: resultado.tokensUsados,
+    })
+    await db.update(sitios).set({
+      estado: 'borrador',
+      totalEdiciones: nuevaVersion,
+      ultimaEdicion: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(sitios.id, sitioId))
+
+    genStore.set(sitioId, { status: 'done', version: nuevaVersion, plan: datos.plan ?? 'pro' })
+    setTimeout(() => genStore.delete(sitioId), 10 * 60 * 1000)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Error desconocido'
+    console.error('[generarEnBackground] Error:', msg, err)
+    try { await db.update(sitios).set({ estado: 'error' }).where(eq(sitios.id, sitioId)) } catch {}
+    genStore.set(sitioId, { status: 'error', error: msg })
+    setTimeout(() => genStore.delete(sitioId), 10 * 60 * 1000)
+  }
+}
+
+// ─── GET: SSE que observa el genStore ────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -131,100 +186,56 @@ export async function GET(req: NextRequest) {
 
   const datos = sitio.contenidoJson as unknown as DatosWizard
 
-  // Si el sitio ya está en borrador/publicado, devolver done inmediatamente
-  // (evita regenerar si EventSource se auto-reconecta)
+  // Si ya terminó en DB → done inmediato (evita regenerar en reconexión de EventSource)
   if (sitio.estado === 'borrador' || sitio.estado === 'publicado') {
-    const encoder2 = new TextEncoder()
+    const enc = new TextEncoder()
     return new Response(
-      encoder2.encode(`data: ${JSON.stringify({ done: true, cached: true })}\n\n`),
+      enc.encode(`data: ${JSON.stringify({ done: true })}\n\n`),
       { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' } }
     )
   }
 
-  const { generarSitioStream } = await import('@/lib/claude/generator')
-  const { getConfig } = await import('@/lib/config')
+  // Lanzar generación en fondo si no está ya corriendo
+  const existing = genStore.get(sitioId)
+  if (!existing || existing.status === 'error') {
+    // SIN await — fire-and-forget: sigue corriendo aunque el cliente cierre la pestaña
+    generarEnBackground(sitioId, datos)
+  }
 
   const encoder = new TextEncoder()
-  let htmlAcumulado = ''
 
   const stream = new ReadableStream({
-    async start(controller) {
-      // Heartbeat cada 15s para evitar que Railway/Nginx mate la conexión inactiva
-      // (Claude puede tardar 30-60s en procesar el prompt antes de empezar a responder)
-      const heartbeat = setInterval(() => {
+    start(controller) {
+      const plan = datos.plan ?? 'pro'
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ plan })}\n\n`))
+
+      let active = true
+
+      // Polling al genStore cada 2s + heartbeat para mantener la conexión viva
+      const poll = setInterval(() => {
+        if (!active) return
+        const s = genStore.get(sitioId)
         try {
-          controller.enqueue(encoder.encode(': ping\n\n'))
-        } catch {}
-      }, 15_000)
-
-      try {
-        await db
-          .update(sitios)
-          .set({ estado: 'generando' })
-          .where(eq(sitios.id, sitioId!))
-
-        const modelo = await getConfig('modelo_claude', 'claude-sonnet-4-6')
-
-        // Enviar plan al cliente para calibrar barra de progreso
-        const plan = datos.plan ?? 'pro'
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ plan })}\n\n`))
-
-        for await (const chunk of generarSitioStream(datos)) {
-          htmlAcumulado += chunk
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk })}\n\n`))
+          if (s?.status === 'done') {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, version: s.version })}\n\n`))
+            clearInterval(poll)
+            active = false
+            setTimeout(() => { try { controller.close() } catch {} }, 500)
+          } else if (s?.status === 'error') {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: s.error ?? 'Error generando sitio' })}\n\n`))
+            clearInterval(poll)
+            active = false
+            setTimeout(() => { try { controller.close() } catch {} }, 500)
+          } else {
+            // Heartbeat — mantiene la conexión viva mientras Claude procesa
+            controller.enqueue(encoder.encode(': ping\n\n'))
+          }
+        } catch {
+          // Cliente se desconectó — el background task sigue corriendo igual
+          clearInterval(poll)
+          active = false
         }
-
-        // Guardar resultado final
-        const [{ maxVersion }] = await db
-          .select({ maxVersion: max(versionesSitio.numeroVersion) })
-          .from(versionesSitio)
-          .where(eq(versionesSitio.sitioId, sitioId!))
-
-        const nuevaVersion = (maxVersion ?? 0) + 1
-
-        await db
-          .update(versionesSitio)
-          .set({ esActual: false })
-          .where(eq(versionesSitio.sitioId, sitioId!))
-
-        await db.insert(versionesSitio).values({
-          sitioId: sitioId!,
-          numeroVersion: nuevaVersion,
-          htmlCompleto: htmlAcumulado,
-          esActual: true,
-          modeloUsado: modelo,
-        })
-
-        await db
-          .update(sitios)
-          .set({
-            estado: 'borrador',
-            totalEdiciones: nuevaVersion,
-            ultimaEdicion: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(sitios.id, sitioId!))
-
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ done: true, version: nuevaVersion })}\n\n`)
-        )
-        clearInterval(heartbeat)
-        // Pequeño delay para garantizar que el done llega al cliente antes del close
-        await new Promise(r => setTimeout(r, 500))
-        controller.close()
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Error generando sitio'
-        console.error('Error en streaming generación:', msg, err)
-        // Marcar como error en DB
-        try {
-          await db.update(sitios).set({ estado: 'error' }).where(eq(sitios.id, sitioId!))
-        } catch {}
-        clearInterval(heartbeat)
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`)
-        )
-        controller.close()
-      }
+      }, 2000)
     },
   })
 
