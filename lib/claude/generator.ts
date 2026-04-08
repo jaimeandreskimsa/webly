@@ -155,12 +155,13 @@ export async function generarSitioStreamConMetadata(
   datos: DatosWizard,
   onChunk: (chunk: string) => void,
 ): Promise<ResultadoGeneracion> {
-  // Dev fallback: simular streaming con el mock
+  // Dev fallback: simular streaming con el mock (con delay para imitar streaming real)
   const envKey = process.env.ANTHROPIC_API_KEY || ''
   if (process.env.NODE_ENV === 'development' && (!envKey || envKey.includes('xxxx'))) {
     const mock = generarHTMLMock(datos)
-    for (let i = 0; i < mock.html.length; i += 40) {
-      onChunk(mock.html.slice(i, i + 40))
+    for (let i = 0; i < mock.html.length; i += 80) {
+      onChunk(mock.html.slice(i, i + 80))
+      await new Promise(r => setTimeout(r, 15))
     }
     return mock
   }

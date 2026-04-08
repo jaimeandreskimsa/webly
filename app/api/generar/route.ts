@@ -186,8 +186,13 @@ async function generarEnBackground(sitioId: string, datos: DatosWizard) {
 
     entry.status = 'done'
     entry.version = nuevaVersion
+    // Enviar done y cerrar cada controller para forzar flush
     for (const ctrl of [...entry.controllers]) {
-      try { ctrl.enqueue(sseEncode({ done: true, version: nuevaVersion })) } catch {}
+      try {
+        ctrl.enqueue(sseEncode({ done: true, version: nuevaVersion }))
+        // Cerrar el stream para que el mensaje se flushee al cliente
+        setTimeout(() => { try { ctrl.close() } catch {} }, 200)
+      } catch {}
     }
     entry.controllers.clear()
     setTimeout(() => genStore.delete(sitioId), 10 * 60 * 1000)

@@ -113,24 +113,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Nuevo sitio (flujo anterior): cambiar estado a borrador y disparar generación
+    // Nuevo sitio: marcar como 'generando' — el frontend abrirá SSE a GET /api/generar
+    // que detectará el estado y arrancará la generación con Claude en background.
     await db
       .update(sitios)
-      .set({ estado: 'borrador', updatedAt: new Date() })
+      .set({ estado: 'generando', updatedAt: new Date() })
       .where(eq(sitios.id, sitioId))
 
-    // Disparar la generación del sitio (llamada interna)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    await fetch(`${appUrl}/api/generar`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-internal-key': process.env.NEXTAUTH_SECRET || '',
-      },
-      body: JSON.stringify({ sitioId, userId }),
-    })
-
-    console.log(`[webhook-flow] Pago aprobado y generación iniciada: sitio ${sitioId}`)
+    console.log(`[webhook-flow] Pago aprobado, sitio ${sitioId} listo para generar`)
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('[webhook-flow] Error:', error)

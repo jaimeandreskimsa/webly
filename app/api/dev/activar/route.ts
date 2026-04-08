@@ -26,10 +26,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Sitio no encontrado' }, { status: 404 })
   }
 
-  // Activar directamente sin pago
+  // Activar directamente sin pago — poner en 'generando' para que
+  // el GET /api/generar arranque la generación con Claude
   await db
     .update(sitios)
-    .set({ estado: 'borrador', updatedAt: new Date() })
+    .set({ estado: 'generando', updatedAt: new Date() })
     .where(eq(sitios.id, sitioId))
 
   return NextResponse.json({ ok: true })
