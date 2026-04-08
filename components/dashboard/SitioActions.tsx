@@ -105,16 +105,16 @@ export function SitioActions({ sitio }: SitioActionsProps) {
         </button>
       )}
 
-      {/* Ver publicado */}
-      {sitio.deployUrl && (
+      {/* Previsualizar */}
+      {sitio.estado !== 'generando' && sitio.estado !== 'pendiente_pago' && (
         <a
-          href={sitio.deployUrl}
+          href={sitio.deployUrl || `/api/sitios/${sitio.id}/preview`}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-2 rounded-xl glass glass-hover text-green-400 hover:text-green-300 transition-colors"
-          title="Ver sitio publicado"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl glass glass-hover text-sm text-green-400 hover:text-green-300 transition-all"
         >
           <ExternalLink className="w-4 h-4" />
+          <span className="hidden sm:inline">Previsualizar</span>
         </a>
       )}
     </div>
