@@ -1,14 +1,18 @@
 'use client'
 
-import { Bell, Search } from 'lucide-react'
+import { Bell, Search, ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
 
 interface DashboardHeaderProps {
   user: {
     name?: string | null
+    rol?: string | null
   }
 }
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {
+  const isAdmin = (user as any).rol === 'admin'
+
   return (
     <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 glass sticky top-0 z-30">
       <div className="relative">
@@ -21,6 +25,15 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       </div>
 
       <div className="flex items-center gap-3">
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/30 text-violet-400 text-xs font-semibold hover:bg-violet-500/20 transition-colors"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Panel Admin
+          </Link>
+        )}
         <button className="relative w-9 h-9 rounded-xl glass glass-hover flex items-center justify-center">
           <Bell className="w-4 h-4 text-muted-foreground" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full" />
