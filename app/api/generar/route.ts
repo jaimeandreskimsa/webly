@@ -236,7 +236,8 @@ export async function GET(req: NextRequest) {
   const datos = sitio.contenidoJson as unknown as DatosWizard
 
   // Si ya terminó en DB → done inmediato (evita regenerar en reconexión de EventSource)
-  if (sitio.estado === 'borrador' || sitio.estado === 'publicado') {
+  // SOLO si ya existe al menos una versión generada (totalEdiciones > 0)
+  if ((sitio.estado === 'borrador' || sitio.estado === 'publicado') && (sitio.totalEdiciones ?? 0) > 0) {
     return new Response(
       encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`),
       { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' } }
