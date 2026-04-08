@@ -13,8 +13,8 @@ const MAX_TOKENS_POR_PLAN = {
 // Haiku es 3-5x más rápido que Sonnet — suficiente calidad para basico/pro.
 // Sonnet se reserva para premium/broker donde la complejidad lo justifica.
 const MODELO_POR_PLAN: Record<string, string> = {
-  basico:  'claude-3-5-haiku-20241022',
-  pro:     'claude-3-5-haiku-20241022',
+  basico:  'claude-haiku-4-5',
+  pro:     'claude-haiku-4-5',
   premium: 'claude-sonnet-4-5',
   broker:  'claude-sonnet-4-5',
 }
