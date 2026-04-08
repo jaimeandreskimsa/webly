@@ -39,7 +39,7 @@ export default async function SitiosPage() {
           <Globe className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-bold text-xl mb-2">No tienes sitios aún</h3>
           <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-            Crea tu primer sitio web con IA y tenlo publicado en menos de 5 minutos.
+            Crea tu primer sitio web con IA y tenlo publicado en minutos.
           </p>
           <Link
             href="/dashboard/nuevo"

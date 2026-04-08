@@ -147,7 +147,7 @@ export function StepResumenPago({ datos }: Props) {
         </div>
         <div className="flex items-center gap-1.5">
           <Zap className="w-3.5 h-3.5 text-yellow-400" />
-          Sitio en 5 minutos
+          Sitio en minutos
         </div>
       </div>
     </div>

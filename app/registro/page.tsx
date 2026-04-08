@@ -89,7 +89,7 @@ function RegistroContent() {
           <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 mb-6">
             <div className="flex items-center gap-2 text-sm">
               <Check className="w-4 h-4 text-green-400 shrink-0" />
-              <span className="text-foreground/80">Cuenta creada → pago → sitio en 5 min</span>
+              <span className="text-foreground/80">Cuenta creada → pago → sitio en minutos</span>
             </div>
           </div>
 

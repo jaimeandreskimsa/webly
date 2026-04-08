@@ -227,7 +227,7 @@ function Hero() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full text-sm text-indigo-300 mb-8 animate-fade-in">
           <Sparkles className="w-4 h-4" />
-          <span>Powered by Claude AI · Sitios en menos de 5 minutos</span>
+          <span>Powered by Claude AI · Sitios en minutos</span>
         </div>
 
         {/* Headline */}
@@ -486,7 +486,7 @@ function Portfolio() {
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
             Empresas reales que confiaron en WeblyNow para su presencia digital.
-            Cada sitio generado con IA en menos de 5 minutos.
+            Cada sitio generado con IA en minutos.
           </p>
         </div>
 
@@ -621,7 +621,7 @@ function CTA() {
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
               Más de 500 empresas ya tienen su sitio web creado con WeblyNow.
-              La tuya puede ser la próxima en 5 minutos.
+              La tuya puede ser la próxima en minutos.
             </p>
             <Link
               href="/registro"

@@ -182,7 +182,7 @@ function EmptyState() {
       </div>
       <h3 className="font-bold text-lg mb-2">Aún no tienes sitios</h3>
       <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
-        Crea tu primer sitio web con IA en menos de 5 minutos. Solo ingresa el contenido de tu negocio.
+        Crea tu primer sitio web con IA en minutos. Solo ingresa el contenido de tu negocio.
       </p>
       <Link
         href="/dashboard/nuevo"
