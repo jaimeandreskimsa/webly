@@ -4,29 +4,26 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Building2, Briefcase, Palette, ImagePlus, Phone,
-  ChevronRight, ChevronLeft, Check, Loader2, CreditCard
+  ChevronRight, ChevronLeft, Check, Loader2, CreditCard, Zap
 } from 'lucide-react'
 import { StepNegocio } from './steps/StepNegocio'
 import { StepServicios } from './steps/StepServicios'
 import { StepDiseno } from './steps/StepDiseno'
 import { StepMedia } from './steps/StepMedia'
 import { StepContacto } from './steps/StepContacto'
-import { StepPago } from './steps/StepPago'
+import { StepResumenPago } from './steps/StepResumenPago'
 import { StepPropiedades, type PropiedadWizard } from './steps/StepPropiedades'
-import { cn } from '@/lib/utils'
+import { cn, formatCLP, PLAN_PRECIOS } from '@/lib/utils'
 
 export interface DatosWizard {
   plan: 'basico' | 'pro' | 'premium' | 'broker'
-  // Paso 1 - Negocio
   nombreEmpresa: string
   rubro: string
   descripcion: string
   ciudad: string
   estilo: string
-  // Paso 2 - Servicios
   servicios: Array<{ nombre: string; descripcion: string; precio?: string }>
   propuestaValor: string
-  // Manual de marca (opcional)
   marcaAnalizada?: {
     coloresPrimarios: string
     coloresSecundarios: string
@@ -34,17 +31,14 @@ export interface DatosWizard {
     tipoDiseno: string
     descripcion: string
   } | null
-  // Paso 3 - Diseño
   coloresPrimarios: string
   coloresSecundarios: string
   tipoDiseno: string
   tipografia: string
-  // Paso 4 - Media
   logo?: string
   imagenes: string[]
   imagenesIA: string[]
   videoUrl?: string
-  // Paso 5 - Contacto
   telefono: string
   email: string
   direccion: string
@@ -55,27 +49,26 @@ export interface DatosWizard {
     whatsapp?: string
     linkedin?: string
   }
-  // Solo plan broker
   propiedadesIniciales?: PropiedadWizard[]
 }
 
 const pasosBroker = [
-  { id: 1, titulo: 'Tu inmobiliaria', icon: Building2, descripcion: 'Info básica de tu empresa' },
-  { id: 2, titulo: 'Servicios', icon: Briefcase, descripcion: 'Qué ofrece tu inmobiliaria' },
-  { id: 3, titulo: 'Propiedades', icon: Building2, descripcion: 'Propiedades iniciales del portal' },
-  { id: 4, titulo: 'Diseño', icon: Palette, descripcion: 'Estilo visual' },
-  { id: 5, titulo: 'Imágenes', icon: ImagePlus, descripcion: 'Logo y fotos de la empresa' },
-  { id: 6, titulo: 'Contacto', icon: Phone, descripcion: 'Datos de contacto' },
-  { id: 7, titulo: 'Pagar', icon: CreditCard, descripcion: 'Confirmar y pagar' },
+  { id: 1, titulo: 'Pagar',           icon: CreditCard, descripcion: 'Confirma tu plan' },
+  { id: 2, titulo: 'Tu inmobiliaria', icon: Building2,  descripcion: 'Info básica de tu empresa' },
+  { id: 3, titulo: 'Servicios',       icon: Briefcase,  descripcion: 'Qué ofrece tu inmobiliaria' },
+  { id: 4, titulo: 'Propiedades',     icon: Building2,  descripcion: 'Propiedades iniciales del portal' },
+  { id: 5, titulo: 'Diseño',          icon: Palette,    descripcion: 'Estilo visual' },
+  { id: 6, titulo: 'Imágenes',        icon: ImagePlus,  descripcion: 'Logo y fotos de la empresa' },
+  { id: 7, titulo: 'Contacto',        icon: Phone,      descripcion: 'Datos de contacto' },
 ]
 
 const pasosDefault = [
-  { id: 1, titulo: 'Tu negocio', icon: Building2, descripcion: 'Info básica de tu empresa' },
-  { id: 2, titulo: 'Servicios', icon: Briefcase, descripcion: 'Qué ofreces' },
-  { id: 3, titulo: 'Diseño', icon: Palette, descripcion: 'Estilo visual' },
-  { id: 4, titulo: 'Imágenes', icon: ImagePlus, descripcion: 'Logo y fotos' },
-  { id: 5, titulo: 'Contacto', icon: Phone, descripcion: 'Datos de contacto' },
-  { id: 6, titulo: 'Pagar', icon: CreditCard, descripcion: 'Confirmar y pagar' },
+  { id: 1, titulo: 'Pagar',      icon: CreditCard, descripcion: 'Confirma tu plan' },
+  { id: 2, titulo: 'Tu negocio', icon: Building2,  descripcion: 'Info básica de tu empresa' },
+  { id: 3, titulo: 'Servicios',  icon: Briefcase,  descripcion: 'Qué ofreces' },
+  { id: 4, titulo: 'Diseño',     icon: Palette,    descripcion: 'Estilo visual' },
+  { id: 5, titulo: 'Imágenes',   icon: ImagePlus,  descripcion: 'Logo y fotos' },
+  { id: 6, titulo: 'Contacto',   icon: Phone,      descripcion: 'Datos de contacto' },
 ]
 
 const datosIniciales: DatosWizard = {
@@ -117,13 +110,20 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
   const [error, setError] = useState('')
 
   const pasos = planInicial === 'broker' ? pasosBroker : pasosDefault
+  const esUltimoPaso = paso === pasos.length
 
   function actualizarDatos(nuevos: Partial<DatosWizard>) {
     setDatos(prev => ({ ...prev, ...nuevos }))
   }
 
+  function irAPaso(numeroPaso: number) {
+    if (numeroPaso < 1 || numeroPaso > pasos.length) return
+    setError('')
+    setPaso(numeroPaso)
+  }
+
   function siguiente() {
-    if (paso === 1 && !datos.nombreEmpresa.trim()) {
+    if (paso === 2 && !datos.nombreEmpresa.trim()) {
       setError('El nombre de tu empresa es requerido para continuar')
       return
     }
@@ -132,16 +132,83 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
   }
 
   function anterior() {
-    if (paso > 1) setPaso(p => p - 1)
+    if (paso > 1) {
+      setError('')
+      setPaso(p => p - 1)
+    }
+  }
+
+  async function generarSinPago() {
+    if (!datos.nombreEmpresa.trim()) {
+      setError('El nombre de tu empresa es requerido')
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      const resSitio = await fetch('/api/sitios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: datos.nombreEmpresa, plan: datos.plan, contenidoJson: datos }),
+      })
+      if (!resSitio.ok) {
+        const e = await resSitio.json().catch(() => ({}))
+        throw new Error(e.error || 'Error al crear el sitio')
+      }
+      const { sitio } = await resSitio.json()
+      const resActivar = await fetch('/api/dev/activar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sitioId: sitio.id }),
+      })
+      if (!resActivar.ok) throw new Error('Error al activar el sitio')
+      router.push(`/dashboard/sitios/${sitio.id}/generando`)
+    } catch (err: any) {
+      setError(err.message || 'Error al procesar. Intenta de nuevo.')
+      setLoading(false)
+    }
+  }
+
+  async function iniciarPago() {
+    if (!datos.nombreEmpresa.trim()) {
+      setError('El nombre de tu empresa es requerido antes de pagar')
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      const resSitio = await fetch('/api/sitios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: datos.nombreEmpresa, plan: datos.plan, contenidoJson: datos }),
+      })
+      if (!resSitio.ok) {
+        const e = await resSitio.json().catch(() => ({}))
+        throw new Error(e.error || 'Error al crear el sitio')
+      }
+      const { sitio } = await resSitio.json()
+
+      const resPago = await fetch('/api/pagos/crear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: datos.plan, sitioId: sitio.id, nombreEmpresa: datos.nombreEmpresa }),
+      })
+      const dataPago = await resPago.json().catch(() => ({}))
+      if (!resPago.ok) throw new Error(dataPago.error || 'Error al procesar el pago')
+
+      window.location.href = dataPago.checkoutUrl
+    } catch (err: any) {
+      setError(err.message || 'Error al procesar. Intenta de nuevo.')
+      setLoading(false)
+    }
   }
 
   const progreso = ((paso - 1) / (pasos.length - 1)) * 100
 
   return (
     <div className="space-y-6">
-      {/* Paso indicators */}
+      {/* Steps clickeables */}
       <div className="glass rounded-2xl border border-white/5 p-6">
-        {/* Progress bar */}
         <div className="relative mb-6">
           <div className="h-1 bg-white/5 rounded-full overflow-hidden">
             <div
@@ -151,20 +218,32 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
           </div>
         </div>
 
-        {/* Steps */}
-        <div className="flex items-center justify-between">
-          {pasos.map((p, idx) => {
+        <div className="flex items-start justify-between">
+          {pasos.map((p) => {
             const isCompleted = paso > p.id
             const isCurrent = paso === p.id
+            const isReachable = p.id <= paso
 
             return (
-              <div key={p.id} className="flex flex-col items-center gap-1.5 flex-1">
+              <button
+                key={p.id}
+                onClick={() => irAPaso(p.id)}
+                disabled={loading || !isReachable}
+                title={isReachable ? `Ir a: ${p.titulo}` : p.titulo}
+                className={cn(
+                  'flex flex-col items-center gap-1.5 flex-1 group transition-all',
+                  isReachable && !loading ? 'cursor-pointer' : 'cursor-default',
+                  !isReachable && 'opacity-50'
+                )}
+              >
                 <div className={cn(
                   'w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300',
                   isCompleted
-                    ? 'bg-indigo-500 glow-purple'
+                    ? 'bg-indigo-500 glow-purple group-hover:bg-indigo-400'
                     : isCurrent
                     ? 'bg-indigo-500/20 border-2 border-indigo-500'
+                    : isReachable
+                    ? 'bg-white/5 border border-white/10 group-hover:border-indigo-500/40 group-hover:bg-indigo-500/10'
                     : 'bg-white/5 border border-white/10'
                 )}>
                   {isCompleted ? (
@@ -177,18 +256,18 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
                   )}
                 </div>
                 <span className={cn(
-                  'text-xs font-medium hidden sm:block',
+                  'text-xs font-medium hidden sm:block text-center leading-tight',
                   isCurrent ? 'text-indigo-300' : isCompleted ? 'text-white' : 'text-muted-foreground'
                 )}>
                   {p.titulo}
                 </span>
-              </div>
+              </button>
             )
           })}
         </div>
       </div>
 
-      {/* Step content */}
+      {/* Contenido del paso */}
       <div className="glass rounded-2xl border border-white/5 p-8 min-h-[400px]">
         <div className="mb-6">
           <h2 className="text-xl font-bold">{pasos[paso - 1].titulo}</h2>
@@ -201,40 +280,48 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
           </div>
         )}
 
-        {paso === 1 && (
-          <StepNegocio datos={datos} onChange={actualizarDatos} />
-        )}
-        {paso === 2 && (
-          <StepServicios datos={datos} onChange={actualizarDatos} />
-        )}
-        {paso === 3 && datos.plan === 'broker' && (
-          <StepPropiedades datos={datos} onChange={actualizarDatos} />
-        )}
-        {paso === (datos.plan === 'broker' ? 4 : 3) && (
-          <StepDiseno datos={datos} onChange={actualizarDatos} />
-        )}
-        {paso === (datos.plan === 'broker' ? 5 : 4) && (
-          <StepMedia datos={datos} onChange={actualizarDatos} plan={datos.plan} />
-        )}
-        {paso === (datos.plan === 'broker' ? 6 : 5) && (
-          <StepContacto datos={datos} onChange={actualizarDatos} />
-        )}
-        {paso === (datos.plan === 'broker' ? 7 : 6) && (
-          <StepPago
-            datos={datos}
-            userId={userId}
-            onError={setError}
-            onLoading={setLoading}
-          />
-        )}
+        {paso === 1 && <StepResumenPago datos={datos} />}
+        {paso === 2 && <StepNegocio datos={datos} onChange={actualizarDatos} />}
+        {paso === 3 && <StepServicios datos={datos} onChange={actualizarDatos} />}
+
+        {paso === 4 && datos.plan === 'broker' && <StepPropiedades datos={datos} onChange={actualizarDatos} />}
+        {paso === 4 && datos.plan !== 'broker' && <StepDiseno datos={datos} onChange={actualizarDatos} />}
+
+        {paso === 5 && datos.plan === 'broker' && <StepDiseno datos={datos} onChange={actualizarDatos} />}
+        {paso === 5 && datos.plan !== 'broker' && <StepMedia datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
+
+        {paso === 6 && datos.plan === 'broker' && <StepMedia datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
+        {paso === 6 && datos.plan !== 'broker' && <StepContacto datos={datos} onChange={actualizarDatos} />}
+
+        {paso === 7 && datos.plan === 'broker' && <StepContacto datos={datos} onChange={actualizarDatos} />}
       </div>
 
-      {/* Navigation */}
-      {paso < pasos.length && (
+      {/* Navegación */}
+      <div className="space-y-3">
+        {/* Dev mode: skip pago */}
+        {esUltimoPaso && process.env.NODE_ENV === 'development' && (
+          <div className="rounded-xl border border-dashed border-yellow-500/40 bg-yellow-500/5 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-yellow-400 text-xs font-semibold">
+              <Zap className="w-3.5 h-3.5" />
+              MODO LOCAL — Saltar pago
+            </div>
+            <button
+              onClick={generarSinPago}
+              disabled={loading}
+              className="w-full bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-300 font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 text-sm disabled:opacity-50 transition-all"
+            >
+              {loading
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Generando...</>
+                : <><Zap className="w-4 h-4" /> Generar sin pago (modo local)</>
+              }
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <button
             onClick={anterior}
-            disabled={paso === 1}
+            disabled={paso === 1 || loading}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl glass glass-hover text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -245,15 +332,29 @@ export function WizardCreacion({ planInicial, userId }: WizardCreacionProps) {
             Paso {paso} de {pasos.length}
           </span>
 
-          <button
-            onClick={siguiente}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl btn-gradient text-white text-sm font-semibold hover:scale-105 transition-transform"
-          >
-            {paso === pasos.length - 1 ? 'Ir al pago' : 'Siguiente'}
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          {esUltimoPaso ? (
+            <button
+              onClick={iniciarPago}
+              disabled={loading}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl btn-gradient text-white text-sm font-bold hover:scale-105 transition-transform glow-purple disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+            >
+              {loading
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</>
+                : <><CreditCard className="w-4 h-4" /> Pagar {formatCLP(PLAN_PRECIOS[datos.plan])}</>
+              }
+            </button>
+          ) : (
+            <button
+              onClick={siguiente}
+              disabled={loading}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl btn-gradient text-white text-sm font-semibold hover:scale-105 transition-transform disabled:opacity-50"
+            >
+              {paso === 1 ? 'Empezar' : 'Siguiente'}
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

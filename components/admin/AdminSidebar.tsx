@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, Globe, CreditCard,
-  Settings, LogOut, Shield, BarChart3, Zap, HelpCircle
+  Settings, LogOut, Shield, BarChart3, Zap, HelpCircle, Package
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -15,6 +15,7 @@ const navItems = [
   { href: '/admin/usuarios', icon: Users, label: 'Usuarios' },
   { href: '/admin/sitios', icon: Globe, label: 'Sitios' },
   { href: '/admin/pagos', icon: CreditCard, label: 'Pagos & Revenue' },
+  { href: '/admin/planes', icon: Package, label: 'Planes' },
   { href: '/admin/estadisticas', icon: BarChart3, label: 'Estadísticas' },
   { href: '/admin/solicitudes', icon: HelpCircle, label: 'Solicitudes', badge: true },
   { href: '/admin/configuracion', icon: Settings, label: 'Configuración' },
