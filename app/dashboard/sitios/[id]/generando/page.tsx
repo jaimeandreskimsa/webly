@@ -26,6 +26,7 @@ function GenerandoContent() {
   const [progreso, setProgreso] = useState(0)
   const [fraseIndex, setFraseIndex] = useState(0)
   const [estado, setEstado] = useState<'generando' | 'listo' | 'error'>('generando')
+  const [errorMsg, setErrorMsg] = useState('')
   const [iniciado, setIniciado] = useState(false)
 
   useEffect(() => {
@@ -35,13 +36,21 @@ function GenerandoContent() {
     // Iniciar generación
     const iniciarGeneracion = async () => {
       try {
+        // Timeout de 4 minutos (Railway cierra a los 5 min)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 4 * 60 * 1000)
+
         const res = await fetch('/api/generar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sitioId }),
+          signal: controller.signal,
         })
+        clearTimeout(timeoutId)
 
         if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          setErrorMsg(data.error || `Error del servidor (${res.status})`)
           setEstado('error')
           return
         }
@@ -50,7 +59,12 @@ function GenerandoContent() {
         setTimeout(() => {
           router.push(`/dashboard/sitios/${sitioId}`)
         }, 2000)
-      } catch {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          setErrorMsg('La generación tardó demasiado. El sitio puede estar listo de todas formas.')
+        } else {
+          setErrorMsg(err instanceof Error ? err.message : 'Error de red al conectar con el servidor')
+        }
         setEstado('error')
       }
     }
@@ -138,15 +152,28 @@ function GenerandoContent() {
               <AlertCircle className="w-10 h-10 text-red-400" />
             </div>
             <h1 className="text-2xl font-bold mb-3">Hubo un error</h1>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-muted-foreground mb-3">
               No pudimos generar tu sitio. Por favor intenta nuevamente.
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="btn-gradient text-white font-semibold px-6 py-3 rounded-xl"
-            >
-              Intentar de nuevo
-            </button>
+            {errorMsg && (
+              <p className="text-xs text-red-400/80 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-6 font-mono break-all">
+                {errorMsg}
+              </p>
+            )}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => window.location.reload()}
+                className="btn-gradient text-white font-semibold px-6 py-3 rounded-xl"
+              >
+                Intentar de nuevo
+              </button>
+              <button
+                onClick={() => router.push(`/dashboard/sitios/${sitioId}`)}
+                className="text-muted-foreground hover:text-white border border-white/10 hover:border-white/20 px-6 py-3 rounded-xl transition-colors text-sm"
+              >
+                Ver sitio de todas formas
+              </button>
+            </div>
           </>
         )}
       </div>

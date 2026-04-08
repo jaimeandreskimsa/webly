@@ -13,14 +13,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
+  let sitioId: string | null = null
+
   try {
-    const { sitioId } = await req.json()
+    const body = await req.json()
+    sitioId = body.sitioId
 
     // Obtener el sitio
     const [sitio] = await db
       .select()
       .from(sitios)
-      .where(eq(sitios.id, sitioId))
+      .where(eq(sitios.id, sitioId!))
       .limit(1)
 
     if (!sitio) {
@@ -35,7 +38,7 @@ export async function POST(req: NextRequest) {
     await db
       .update(sitios)
       .set({ estado: 'generando' })
-      .where(eq(sitios.id, sitioId))
+      .where(eq(sitios.id, sitioId!))
 
     const datos = sitio.contenidoJson as unknown as DatosWizard
 
@@ -46,7 +49,7 @@ export async function POST(req: NextRequest) {
     const [{ maxVersion }] = await db
       .select({ maxVersion: max(versionesSitio.numeroVersion) })
       .from(versionesSitio)
-      .where(eq(versionesSitio.sitioId, sitioId))
+      .where(eq(versionesSitio.sitioId, sitioId!))
 
     const nuevaVersion = (maxVersion ?? 0) + 1
 
@@ -54,11 +57,11 @@ export async function POST(req: NextRequest) {
     await db
       .update(versionesSitio)
       .set({ esActual: false })
-      .where(eq(versionesSitio.sitioId, sitioId))
+      .where(eq(versionesSitio.sitioId, sitioId!))
 
     // Guardar nueva versión
     await db.insert(versionesSitio).values({
-      sitioId,
+      sitioId: sitioId!,
       numeroVersion: nuevaVersion,
       htmlCompleto: resultado.html,
       esActual: true,
@@ -75,7 +78,7 @@ export async function POST(req: NextRequest) {
         ultimaEdicion: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(sitios.id, sitioId))
+      .where(eq(sitios.id, sitioId!))
 
     return NextResponse.json({
       ok: true,
@@ -83,23 +86,21 @@ export async function POST(req: NextRequest) {
       tokensUsados: resultado.tokensUsados,
     })
   } catch (error) {
-    console.error('Error generando sitio:', error)
+    const msg = error instanceof Error ? error.message : 'Error desconocido'
+    console.error('Error generando sitio:', msg, error)
 
-    // Marcar como error
-    if (req.body) {
+    // Marcar el sitio como error (sitioId ya está en scope)
+    if (sitioId) {
       try {
-        const body = await req.json().catch(() => ({}))
-        if (body.sitioId) {
-          await db
-            .update(sitios)
-            .set({ estado: 'error' })
-            .where(eq(sitios.id, body.sitioId))
-        }
+        await db
+          .update(sitios)
+          .set({ estado: 'error' })
+          .where(eq(sitios.id, sitioId))
       } catch {}
     }
 
     return NextResponse.json(
-      { error: 'Error al generar el sitio. Intenta de nuevo.' },
+      { error: msg },
       { status: 500 }
     )
   }
