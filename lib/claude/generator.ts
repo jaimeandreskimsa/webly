@@ -4,10 +4,10 @@ import type { DatosWizard } from '@/components/wizard/WizardCreacion'
 import { getConfig, isValidSecret } from '@/lib/config'
 
 const MAX_TOKENS_POR_PLAN = {
-  basico:   6_000,   // ↓ 8k→6k  · landing 1 página
-  pro:     12_000,   // ↓ 16k→12k · SPA 4 páginas simplificada
-  premium: 28_000,   // ↓ 64k→28k · sitio premium con animaciones
-  broker:  20_000,   // ↓ 32k→20k · portal inmobiliario
+  basico:  20_000,   // ↑ 6k→20k  · landing 1 página con logo + AOS completo
+  pro:     12_000,   // · SPA 4 páginas simplificada
+  premium: 28_000,   // · sitio premium con animaciones
+  broker:  20_000,   // · portal inmobiliario
 }
 
 // Haiku es 3-5x más rápido que Sonnet — suficiente calidad para basico/pro.
