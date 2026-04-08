@@ -14,6 +14,28 @@ export async function POST(req: NextRequest) {
 
   try {
     const { plan } = await req.json()
+    const rol = (session.user as any).rol
+
+    // ── Plan DEMO: solo admins, salta Flow por completo ───────────────────────
+    if (plan === 'demo') {
+      if (rol !== 'admin') {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+      }
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const slug = `demo-${Date.now().toString(36)}`
+      const [nuevoSitio] = await db.insert(sitios).values({
+        userId,
+        nombre: 'Sitio Demo',
+        slug,
+        plan: 'premium', // todas las funcionalidades
+        estado: 'borrador', // sin pago requerido
+        contenidoJson: null,
+      }).returning()
+      return NextResponse.json({
+        checkoutUrl: `${appUrl}/dashboard/sitios/${nuevoSitio.id}/configurar?demo=1`,
+        sitioId: nuevoSitio.id,
+      })
+    }
 
     if (!plan || !['basico', 'pro', 'premium', 'broker'].includes(plan)) {
       return NextResponse.json({ error: 'Plan inválido' }, { status: 400 })

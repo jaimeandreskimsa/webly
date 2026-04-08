@@ -6,10 +6,13 @@ import { WizardConfiguracion } from '@/components/wizard/WizardConfiguracion'
 
 interface Props {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ demo?: string }>
 }
 
-export default async function ConfigurarSitioPage({ params }: Props) {
+export default async function ConfigurarSitioPage({ params, searchParams }: Props) {
   const { id } = await params
+  const { demo } = await searchParams
+  const isDemo = demo === '1'
   const session = await auth()
   if (!session?.user) redirect('/login')
 
@@ -48,8 +51,12 @@ export default async function ConfigurarSitioPage({ params }: Props) {
   return (
     <div className="max-w-3xl mx-auto py-8">
       <div className="mb-8">
-        <div className="inline-flex items-center gap-2 text-green-400 text-xs font-semibold bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-full mb-4">
-          ✅ Pago confirmado — Ahora personaliza tu sitio
+        <div className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 ${
+          isDemo
+            ? 'text-violet-400 bg-violet-500/10 border border-violet-500/20'
+            : 'text-green-400 bg-green-500/10 border border-green-500/20'
+        }`}>
+          {isDemo ? '🧪 Modo Demo — Plan Premium · Sin costo' : '✅ Pago confirmado — Ahora personaliza tu sitio'}
         </div>
         <h1 className="text-2xl font-black mb-2">Cuéntanos sobre tu negocio</h1>
         <p className="text-muted-foreground text-sm">

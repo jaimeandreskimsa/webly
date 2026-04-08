@@ -9,6 +9,7 @@ const planNombres: Record<string, string> = {
   pro: 'Pro',
   premium: 'Premium',
   broker: 'Broker',
+  demo: 'Demo (Admin)',
 }
 
 const planPrecios: Record<string, string> = {
@@ -16,6 +17,7 @@ const planPrecios: Record<string, string> = {
   pro: '$100.000',
   premium: '$300.000',
   broker: '$700.000',
+  demo: 'Gratis',
 }
 
 function NuevoContent() {
@@ -61,10 +63,12 @@ function NuevoContent() {
           <Loader2 className="w-10 h-10 text-indigo-400 animate-spin" />
         </div>
         <div>
-          <h2 className="text-xl font-black mb-1">Preparando tu pago...</h2>
+          <h2 className="text-xl font-black mb-1">
+            {plan === 'demo' ? 'Creando sitio demo...' : 'Preparando tu pago...'}
+          </h2>
           <p className="text-muted-foreground text-sm">
             Plan <span className="text-white font-semibold">{planNombre}</span>{' '}
-            — {planPrecio} pago único
+            — {plan === 'demo' ? 'sin costo · todas las funcionalidades' : `${planPrecio} pago único`}
           </p>
         </div>
         <div className="flex items-center gap-6 text-xs text-muted-foreground">
