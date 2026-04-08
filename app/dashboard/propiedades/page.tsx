@@ -241,7 +241,7 @@ export default function PropiedadesPage() {
               ? <Loader2 className="w-4 h-4 animate-spin" />
               : <RefreshCw className="w-4 h-4" />
             }
-            Publicar sitio
+            Actualizar propiedades en la web
           </button>
           <button
             onClick={abrirCrear}
