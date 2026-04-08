@@ -12,18 +12,19 @@ const CHARS_ESPERADOS: Record<string, number> = {
   broker: 80_000,
 }
 
-const frasesGenerando = [
-  'Analizando el contenido de tu negocio...',
-  'Diseñando la estructura del sitio...',
-  'Aplicando animaciones GSAP...',
-  'Optimizando para SEO...',
-  'Generando el código HTML...',
-  'Agregando los efectos visuales...',
-  'Ajustando tipografías y colores...',
-  'Revisando responsive design...',
-  'Últimos toques de calidad...',
-  'Tu sitio está casi listo...',
-]
+// Mensaje real basado en el porcentaje de progreso
+function fraseSegunProgreso(p: number): string {
+  if (p < 5)  return 'Conectando con Claude AI...'
+  if (p < 15) return 'Analizando los datos de tu negocio...'
+  if (p < 25) return 'Definiendo la estructura de páginas...'
+  if (p < 38) return 'Generando el HTML y semántica...'
+  if (p < 52) return 'Escribiendo los estilos CSS...'
+  if (p < 65) return 'Aplicando animaciones y efectos...'
+  if (p < 75) return 'Agregando JavaScript e interactividad...'
+  if (p < 85) return 'Optimizando para SEO y mobile...'
+  if (p < 93) return 'Revisando el código final...'
+  return 'Guardando tu sitio... casi listo ✨'
+}
 
 function GenerandoContent() {
   const router = useRouter()
@@ -52,15 +53,6 @@ function GenerandoContent() {
         return Math.min(96, p + 0.04)
       })
     }, 2000)
-    return () => clearInterval(iv)
-  }, [estado])
-
-  // Rotar frases mientras genera
-  useEffect(() => {
-    if (estado !== 'generando') return
-    const iv = setInterval(() => {
-      setFraseIndex(i => (i + 1) % frasesGenerando.length)
-    }, 3000)
     return () => clearInterval(iv)
   }, [estado])
 
@@ -145,7 +137,7 @@ function GenerandoContent() {
             {/* Progress bar */}
             <div className="glass rounded-2xl border border-white/5 p-6 mb-6">
               <div className="flex items-center justify-between text-sm mb-3">
-                <span className="text-muted-foreground">{frasesGenerando[fraseIndex]}</span>
+                <span className="text-muted-foreground">{fraseSegunProgreso(progreso)}</span>
                 <span className="font-mono text-indigo-400">{Math.round(progreso)}%</span>
               </div>
               <div className="h-2 bg-white/5 rounded-full overflow-hidden">
