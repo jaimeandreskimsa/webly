@@ -14,8 +14,9 @@ export default auth((req) => {
   const isDashboardRoute = nextUrl.pathname.startsWith('/dashboard')
   const isAdminRoute = nextUrl.pathname.startsWith('/admin')
   const isApiAuth = nextUrl.pathname.startsWith('/api/auth')
+  const isHealthCheck = nextUrl.pathname === '/api/health'
 
-  if (isApiAuth) return NextResponse.next()
+  if (isApiAuth || isHealthCheck) return NextResponse.next()
 
   // Proteger /admin — solo admins
   if (isAdminRoute) {
@@ -40,5 +41,5 @@ export default auth((req) => {
 })
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.png$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/health|.*\.png$).*)'],
 }
