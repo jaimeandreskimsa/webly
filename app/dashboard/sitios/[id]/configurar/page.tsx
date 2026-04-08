@@ -1,8 +1,9 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { db, sitios, pagos } from '@/lib/db'
+import { db, sitios, pagos, usuarios } from '@/lib/db'
 import { eq, and } from 'drizzle-orm'
 import { WizardConfiguracion } from '@/components/wizard/WizardConfiguracion'
+import { obtenerEstadoPago, getFlowCredentials } from '@/lib/flow'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -16,7 +17,6 @@ export default async function ConfigurarSitioPage({ params, searchParams }: Prop
   const session = await auth()
   if (!session?.user) redirect('/login')
 
-  // Verificar que el sitio le pertenece al usuario
   const [sitio] = await db
     .select()
     .from(sitios)
@@ -25,25 +25,64 @@ export default async function ConfigurarSitioPage({ params, searchParams }: Prop
 
   if (!sitio) redirect('/dashboard')
 
-  // Si ya fue configurado y está generando o publicado, redirigir a la vista del sitio
   if (sitio.estado === 'publicado' || sitio.estado === 'generando') {
     redirect(`/dashboard/sitios/${id}`)
   }
 
-  // Verificar que el pago fue aprobado antes de mostrar el wizard
-  // flowOrder tiene formato "{sitioId}|{userId}|{plan}|en"
+  // Si el sitio sigue pendiente de pago, verificar con Flow directamente
   if (sitio.estado === 'pendiente_pago') {
-    const todosPagos = await db
-      .select({ estado: pagos.estado, flowOrder: pagos.flowOrder })
+    // Buscar el pago más reciente para este sitio
+    const pagosSitio = await db
+      .select()
       .from(pagos)
       .where(eq(pagos.userId, session.user.id as string))
 
-    const pagoAprobado = todosPagos.find(
-      p => p.estado === 'aprobado' && p.flowOrder?.startsWith(id.replace(/-/g, '').slice(0, 10))
-    )
+    const shortId = id.replace(/-/g, '').slice(0, 10)
+    const pagoDelSitio = pagosSitio
+      .filter(p => p.flowOrder?.startsWith(shortId))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
 
-    if (!pagoAprobado) {
-      // Pago no confirmado aún — mostrar página de espera con polling
+    // Si ya está aprobado en DB, continuar
+    if (pagoDelSitio?.estado === 'aprobado') {
+      await db.update(sitios).set({ estado: 'borrador', updatedAt: new Date() }).where(eq(sitios.id, id))
+    } else if (pagoDelSitio?.flowToken) {
+      // Consultar Flow directamente para no depender del webhook
+      try {
+        const { apiKey, secretKey } = await getFlowCredentials()
+        if (apiKey && secretKey) {
+          const estadoFlow = await obtenerEstadoPago({
+            apiKey,
+            secretKey,
+            token: pagoDelSitio.flowToken,
+          })
+
+          if (estadoFlow.status === 1) {
+            // Pago confirmado por Flow — aprobar en DB y continuar al wizard
+            await db.update(pagos)
+              .set({ estado: 'aprobado', updatedAt: new Date() })
+              .where(eq(pagos.id, pagoDelSitio.id))
+
+            await db.update(sitios)
+              .set({ estado: 'borrador', plan: sitio.plan as any, updatedAt: new Date() })
+              .where(eq(sitios.id, id))
+
+            await db.update(usuarios)
+              .set({ plan: sitio.plan as any, updatedAt: new Date() })
+              .where(eq(usuarios.id, session.user.id as string))
+
+            // Continuar al wizard (no redirigir, mostrar debajo)
+          } else {
+            // Flow dice que no está pagado
+            redirect(`/dashboard/sitios/${id}/esperando-pago`)
+          }
+        } else {
+          redirect(`/dashboard/sitios/${id}/esperando-pago`)
+        }
+      } catch {
+        // Si Flow falla, ir a esperar
+        redirect(`/dashboard/sitios/${id}/esperando-pago`)
+      }
+    } else {
       redirect(`/dashboard/sitios/${id}/esperando-pago`)
     }
   }

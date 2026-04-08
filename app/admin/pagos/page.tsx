@@ -2,6 +2,7 @@ import { db, pagos, usuarios } from '@/lib/db'
 import { eq, sum, count, desc } from 'drizzle-orm'
 import { formatFecha, formatCLP, PLAN_NOMBRES } from '@/lib/utils'
 import { CreditCard, TrendingUp, DollarSign } from 'lucide-react'
+import { AdminPagoActions } from '@/components/admin/AdminPagoActions'
 
 export default async function AdminPagosPage() {
   const todosPagos = await db
@@ -90,6 +91,7 @@ export default async function AdminPagosPage() {
                 <th className="text-left px-5 py-3.5 text-slate-400 font-medium">Estado</th>
                 <th className="text-left px-5 py-3.5 text-slate-400 font-medium">MP ID</th>
                 <th className="text-left px-5 py-3.5 text-slate-400 font-medium">Fecha</th>
+                <th className="text-left px-5 py-3.5 text-slate-400 font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -122,6 +124,9 @@ export default async function AdminPagosPage() {
                     {p.flowToken?.slice(0, 12) || '—'}...
                   </td>
                   <td className="px-5 py-3.5 text-slate-500 text-xs">{formatFecha(p.createdAt)}</td>
+                  <td className="px-5 py-3.5">
+                    <AdminPagoActions pagoId={p.id} estado={p.estado ?? 'pendiente'} />
+                  </td>
                 </tr>
               ))}
             </tbody>

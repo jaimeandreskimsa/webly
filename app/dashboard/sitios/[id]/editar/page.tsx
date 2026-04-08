@@ -1,9 +1,11 @@
 import { auth } from '@/auth'
-import { db, sitios } from '@/lib/db'
+import { db, sitios, versionesSitio } from '@/lib/db'
 import { eq, and } from 'drizzle-orm'
 import { redirect, notFound } from 'next/navigation'
 import { EditorSitio } from '@/components/dashboard/EditorSitio'
 import { PLAN_LIMITE_EDICIONES } from '@/lib/utils'
+import Link from 'next/link'
+import { Rocket } from 'lucide-react'
 
 export default async function EditarSitioPage({
   params,
@@ -17,19 +19,23 @@ export default async function EditarSitioPage({
   const [sitio] = await db
     .select()
     .from(sitios)
-    .where(
-      and(
-        eq(sitios.id, id),
-        eq(sitios.userId, session.user.id as string)
-      )
-    )
+    .where(and(eq(sitios.id, id), eq(sitios.userId, session.user.id as string)))
     .limit(1)
 
   if (!sitio) notFound()
 
+  // Verificar que existe una versión generada para editar
+  let tieneVersion = false
+  try {
+    const [version] = await db
+      .select({ id: versionesSitio.id })
+      .from(versionesSitio)
+      .where(and(eq(versionesSitio.sitioId, id), eq(versionesSitio.esActual, true)))
+      .limit(1)
+    tieneVersion = !!version
+  } catch {}
+
   const limite = PLAN_LIMITE_EDICIONES[sitio.plan as keyof typeof PLAN_LIMITE_EDICIONES]
-  // totalEdiciones cuenta las versiones generadas. La versión 1 es la creación,
-  // así que las ediciones reales son totalEdiciones - 1 (mínimo 0)
   const edicionesUsadas = Math.max(0, (sitio.totalEdiciones ?? 1) - 1)
   const puedeEditar = edicionesUsadas < limite
 
@@ -42,7 +48,21 @@ export default async function EditarSitioPage({
         </p>
       </div>
 
-      {!puedeEditar ? (
+      {!tieneVersion ? (
+        <div className="glass rounded-2xl border border-indigo-500/30 p-8 text-center space-y-4">
+          <p className="font-semibold text-indigo-300 text-lg">Tu sitio aún no ha sido generado</p>
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+            Primero genera tu sitio con IA, y luego podrás editarlo.
+          </p>
+          <Link
+            href={`/dashboard/sitios/${id}/generando`}
+            className="inline-flex items-center gap-2 btn-gradient text-white font-semibold px-6 py-3 rounded-xl text-sm"
+          >
+            <Rocket className="w-4 h-4" />
+            Generar mi sitio ahora
+          </Link>
+        </div>
+      ) : !puedeEditar ? (
         <div className="glass rounded-2xl border border-orange-500/30 p-8 text-center space-y-4">
           <p className="font-semibold text-orange-400 text-lg">Límite de ediciones alcanzado</p>
           <p className="text-muted-foreground text-sm max-w-md mx-auto">

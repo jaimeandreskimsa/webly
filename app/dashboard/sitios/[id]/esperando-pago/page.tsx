@@ -2,32 +2,52 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Loader2, CheckCircle2, Clock, RefreshCw } from 'lucide-react'
+import { Loader2, Clock, RefreshCw, CheckCircle2 } from 'lucide-react'
 
 export default function EsperandoPagoPage() {
   const params = useParams()
   const router = useRouter()
   const sitioId = params.id as string
   const [intentos, setIntentos] = useState(0)
+  const [verificando, setVerificando] = useState(false)
+
+  async function verificarPago() {
+    try {
+      // Consultar Flow directamente
+      const res = await fetch('/api/pagos/verificar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sitioId }),
+      })
+      const data = await res.json()
+      if (data.aprobado) {
+        router.push(`/dashboard/sitios/${sitioId}/configurar`)
+        return true
+      }
+    } catch {}
+    return false
+  }
 
   useEffect(() => {
-    // Poll cada 3 segundos para ver si el pago fue confirmado
+    // Poll cada 3s consultando Flow directamente
     const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/sitios/${sitioId}`)
-        if (!res.ok) return
-        const { sitio } = await res.json()
-        // Si el estado ya no es pendiente_pago, el webhook llegó
-        if (sitio.estado !== 'pendiente_pago') {
-          clearInterval(interval)
-          router.push(`/dashboard/sitios/${sitioId}/configurar`)
-        }
-        setIntentos(p => p + 1)
-      } catch { }
+      setIntentos(p => p + 1)
+      await verificarPago()
     }, 3000)
 
     return () => clearInterval(interval)
-  }, [sitioId, router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sitioId])
+
+  async function handleContinuar() {
+    setVerificando(true)
+    const ok = await verificarPago()
+    if (!ok) {
+      // Si Flow no confirma, ir igual al wizard (el pago pudo haberse confirmado)
+      router.push(`/dashboard/sitios/${sitioId}/configurar`)
+    }
+    setVerificando(false)
+  }
 
   return (
     <div className="min-h-screen bg-[#060810] flex items-center justify-center p-6">
@@ -39,32 +59,36 @@ export default function EsperandoPagoPage() {
         <div>
           <h1 className="text-2xl font-black mb-2">Confirmando tu pago...</h1>
           <p className="text-muted-foreground text-sm">
-            Flow.cl está procesando la transacción. Esto puede tardar unos segundos.
+            Verificando la transacción con Flow.cl. Esto puede tardar unos segundos.
           </p>
         </div>
 
         <div className="glass rounded-xl border border-white/5 p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm">
             <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
-            <span>Verificando confirmación de pago...</span>
+            <span>Verificando con Flow directamente...</span>
           </div>
           {intentos > 0 && (
             <p className="text-xs text-muted-foreground">
-              Verificando... ({intentos} verificaciones)
+              {intentos} verificación{intentos !== 1 ? 'es' : ''} realizadas
             </p>
           )}
         </div>
 
         <button
-          onClick={() => router.push(`/dashboard/sitios/${sitioId}/configurar`)}
-          className="flex items-center gap-2 mx-auto text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+          onClick={handleContinuar}
+          disabled={verificando}
+          className="flex items-center gap-2 mx-auto text-sm text-indigo-400 hover:text-indigo-300 transition-colors disabled:opacity-50"
         >
-          <RefreshCw className="w-4 h-4" />
-          El pago ya fue confirmado, continuar →
+          {verificando
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : <CheckCircle2 className="w-4 h-4" />
+          }
+          {verificando ? 'Verificando...' : 'Mi banco confirmó el pago, continuar →'}
         </button>
 
         <p className="text-xs text-muted-foreground">
-          Si tu banco confirmó el pago, haz click en "continuar" arriba.
+          Si tu banco ya confirmó el pago, haz click arriba para continuar.
         </p>
       </div>
     </div>

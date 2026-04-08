@@ -266,15 +266,12 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 function GenerarButton({ sitioId }: { sitioId: string }) {
   return (
-    <form action={`/api/generar`} method="POST">
-      <input type="hidden" name="sitioId" value={sitioId} />
-      <button
-        type="submit"
-        className="inline-flex items-center gap-2 btn-gradient text-white font-semibold px-6 py-3 rounded-xl text-sm"
-      >
-        <Rocket className="w-4 h-4" />
-        Generar mi sitio ahora
-      </button>
-    </form>
+    <a
+      href={`/dashboard/sitios/${sitioId}/generando`}
+      className="inline-flex items-center gap-2 btn-gradient text-white font-semibold px-6 py-3 rounded-xl text-sm"
+    >
+      <Rocket className="w-4 h-4" />
+      Generar mi sitio ahora
+    </a>
   )
 }
