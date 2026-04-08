@@ -45,8 +45,7 @@ export function AdminSitioActions({ sitioId, estado }: AdminSitioActionsProps) {
           <div className="absolute right-0 top-8 z-50 w-44 rounded-xl border border-slate-700 shadow-2xl overflow-hidden" style={{ backgroundColor: '#111827' }}>
             <div className="p-1">
               <a
-                href={`/dashboard/sitios/${sitioId}`}
-                target="_blank"
+                href={`/admin/sitios/${sitioId}`}
                 className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-white/10 text-slate-300 transition-colors"
               >
                 <Eye className="w-3.5 h-3.5" />

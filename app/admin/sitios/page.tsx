@@ -1,6 +1,7 @@
 import { db, sitios, usuarios } from '@/lib/db'
 import { eq, desc } from 'drizzle-orm'
 import { formatFecha, PLAN_NOMBRES } from '@/lib/utils'
+import Link from 'next/link'
 import { Globe, ExternalLink, RefreshCw, AlertCircle, CheckCircle2, Clock, Activity, Loader2 } from 'lucide-react'
 import { AdminSitioActions } from '@/components/admin/AdminSitioActions'
 
@@ -64,12 +65,12 @@ export default async function AdminSitiosPage() {
               {todosSitios.map(({ sitio: s, usuarioNombre, usuarioEmail }) => (
                 <tr key={s.id} className="border-b border-white/5 last:border-0 hover:bg-white/3 transition-colors">
                   <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-2">
+                    <Link href={`/admin/sitios/${s.id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                       <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
                         <Globe className="w-3.5 h-3.5 text-indigo-400" />
                       </div>
-                      <span className="font-medium text-white">{s.nombre}</span>
-                    </div>
+                      <span className="font-medium text-white hover:text-indigo-300 transition-colors">{s.nombre}</span>
+                    </Link>
                   </td>
                   <td className="px-5 py-3.5">
                     <p className="text-white text-xs font-medium">{usuarioNombre ?? '—'}</p>
