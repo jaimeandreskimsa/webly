@@ -8,7 +8,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'image.thum.io' },
     ],
   },
-  serverExternalPackages: ['bcryptjs'],
+  serverExternalPackages: ['bcryptjs', 'pg', 'nodemailer'],
   // Railway asigna el puerto dinámicamente via $PORT
   ...(process.env.PORT ? { env: { PORT: process.env.PORT } } : {}),
 }
