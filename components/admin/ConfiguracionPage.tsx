@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   Key, Brain, DollarSign, Settings, Cpu, Eye, EyeOff,
   Save, RotateCcw, Check, Loader2, AlertTriangle,
@@ -80,7 +81,12 @@ const API_SECTIONS = [
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ConfiguracionAdminPage({ defaultPrompts }: { defaultPrompts: DefaultPrompts }) {
-  const [tab, setTab] = useState<Tab>('apis')
+  const searchParams = useSearchParams()
+  const tabFromUrl = searchParams.get('tab') as Tab | null
+  const validTabs: Tab[] = ['apis', 'prompts', 'modelos', 'precios', 'general']
+  const [tab, setTab] = useState<Tab>(
+    tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'apis'
+  )
   const [config, setConfig] = useState<ConfigMap>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)

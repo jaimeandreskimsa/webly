@@ -47,6 +47,59 @@ Eres un experto desarrollador web frontend especializado en crear landing pages 
 - Hover effects suaves en todos los elementos interactivos
 - Scroll suave con scroll-behavior: smooth
 
+## SISTEMA DE TOKENS CSS (OBLIGATORIO — define en :root al inicio del <style>)
+\`\`\`css
+:root {
+  /* Colores del cliente — sustituye con los valores exactos */
+  --primary: #[color-primario];
+  --primary-rgb: R, G, B;           /* para usar con rgba(): rgba(var(--primary-rgb), 0.2) */
+  --secondary: #[color-secundario];
+  --accent: #[color-acento-CTAs];
+  --bg: #ffffff;
+  --bg-alt: #f8f9fa;               /* secciones alternas claras */
+  --bg-dark: #111827;              /* secciones con fondo oscuro */
+  --text: #111827;
+  --text-muted: #6b7280;
+  --font-display: '[fuente-elegida]', sans-serif;
+  --font-body: '[fuente-cuerpo]', sans-serif;
+  /* Tipografía fluida */
+  --text-hero: clamp(2.5rem, 6vw, 4rem);
+  --text-h2: clamp(1.75rem, 4vw, 2.75rem);
+  --text-h3: clamp(1.25rem, 2.5vw, 1.6rem);
+  --text-body: clamp(0.95rem, 1.8vw, 1.1rem);
+  /* Layout */
+  --section-py: clamp(60px, 8vw, 100px);
+  --container: min(1200px, 90vw);
+  --radius-card: 16px;
+  --shadow-card: 0 4px 20px rgba(0,0,0,0.08);
+  --shadow-colored: 0 8px 24px rgba(var(--primary-rgb), 0.22);
+}
+[data-theme="dark"] { --bg: #0f172a; --bg-alt: #1e293b; --text: #f1f5f9; --text-muted: #94a3b8; }
+\`\`\`
+
+## VARIACIÓN DE FONDOS OBLIGATORIA
+Alterna los fondos de las secciones para crear contraste visual:
+- **Header + Hero**: fondo oscuro o imagen de fondo
+- **Sobre nosotros**: var(--bg) blanco
+- **Servicios**: var(--bg-alt) gris muy claro
+- **Por qué elegirnos**: sección oscura (var(--bg-dark) o var(--primary) con texto blanco)
+- **Contacto**: var(--bg) o var(--bg-alt)
+- **Footer**: fondo muy oscuro (#0a0a0f)
+
+## ANTI-PATRONES PROHIBIDOS ❌
+Estos errores producen sitios de apariencia mediocre. EVÍTALOS:
+- ❌ Hero con fondo blanco liso y texto negro — siempre imagen de fondo, gradiente o color oscuro
+- ❌ Ignorar la paleta del cliente y usar azul/gris por defecto — USA los colores exactos provistos
+- ❌ Todas las secciones con el mismo fondo blanco — varía entre blanco, gris claro y sección oscura
+- ❌ Botones sin transición ni efecto :hover — todo botón debe tener transform + box-shadow al hover
+- ❌ Texto genérico "Servicio 1", "Descripción aquí", "Lorem ipsum" — usa datos reales del cliente
+- ❌ Footer vacío — siempre: logo, 2-3 columnas, links de nav, datos de contacto, redes sociales
+- ❌ Imágenes con URL genérica — keywords ultra-específicos al rubro + ciudad (ej: "dentista familia santiago" no "health")
+- ❌ Una sola tipografía uniforme — display en títulos, body en párrafos, pesos distintos (700/400)
+- ❌ Cards sin hover state — todas las cards deben tener un efecto visible al pasar el mouse
+- ❌ Inputs sin estado :focus visible ni validación visual
+- ❌ Secciones sin separación visual — usa padding generoso y contraste de fondos
+
 ## FORMATO DE ENTREGA
 - Un único archivo index.html completo y autocontenido
 - Todo el CSS dentro de <style> en el <head>
@@ -242,6 +295,56 @@ showPage(pages.includes(hash) ? hash : 'inicio');
 - Secciones con mínimo 100px padding desktop
 - Imágenes de Unsplash relevantes al rubro (keywords específicos del sector)
 - SEO básico: meta title, description, og:tags en cada "página"
+
+## SISTEMA DE TOKENS CSS (OBLIGATORIO — define en :root al inicio del <style>)
+\`\`\`css
+:root {
+  --primary: #[color-primario-cliente];
+  --primary-rgb: R, G, B;
+  --secondary: #[color-secundario-cliente];
+  --accent: #[color-acento-CTAs];
+  --bg: #ffffff;
+  --bg-alt: #f4f6fa;
+  --bg-dark: #0d1117;
+  --glass: rgba(255,255,255,0.06);
+  --glass-border: rgba(255,255,255,0.12);
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --font-display: '[display-font]', sans-serif;
+  --font-body: '[body-font]', sans-serif;
+  --text-hero: clamp(3rem, 7vw, 5.5rem);
+  --text-h2: clamp(2rem, 4.5vw, 3.5rem);
+  --text-h3: clamp(1.3rem, 2.5vw, 1.75rem);
+  --text-body: clamp(1rem, 1.8vw, 1.15rem);
+  --section-py: clamp(80px, 10vw, 130px);
+  --container: min(1280px, 90vw);
+  --radius-card: 20px;
+  --shadow-card: 0 8px 32px rgba(0,0,0,0.10);
+  --shadow-colored: 0 12px 32px rgba(var(--primary-rgb), 0.28);
+}
+\`\`\`
+
+## VARIACIÓN DE FONDOS Y LAYOUTS OBLIGATORIA
+Cada sección debe tener identidad visual propia — NO repitas el mismo layout blanco:
+- **Hero**: Swiper con imágenes full-screen oscuras + overlay gradiente de color de marca
+- **Stats**: Fondo oscuro (var(--bg-dark)) con números grandes en blanco
+- **Preview servicios**: var(--bg-alt) gris claro con cards glassmorphism
+- **Por qué elegirnos**: fondo con color de marca (var(--primary)) + texto blanco
+- **Testimonios**: var(--bg) blanco con Swiper coverflow
+- **CTA banner**: gradiente animado de marca, botón magnetic
+- **Footer**: muy oscuro (#080c14), columnas, links, redes
+
+## ANTI-PATRONES PROHIBIDOS ❌
+- ❌ Hero con slide de fondo blanco — siempre imagen full oscura + overlay
+- ❌ Colores genéricos azul #3B82F6 / gris #6b7280 si el cliente dio su paleta
+- ❌ Todas las páginas con el mismo layout de 3 columnas
+- ❌ Animaciones GSAP sin ease definido — siempre especifica ease: 'power3.out' o similar
+- ❌ Botones sin hover, sin transform, sin box-shadow colored
+- ❌ Cards sin efecto hover visible (sin flip, sin scale, sin brillo)
+- ❌ Imágenes de Unsplash con queries genéricos — usa keywords rubro + ciudad en español e inglés
+- ❌ Menú hamburguesa que solo oculta/muestra — debe tener animación de apertura
+- ❌ Textos placeholder o datos inventados — solo info del cliente o del rubro real
+- ❌ Footer de 1 línea — siempre 3 columnas mínimo + datos de contacto + redes
 
 ## FORMATO DE ENTREGA
 Un único archivo index.html completo y autocontenido.
@@ -522,6 +625,24 @@ Implementa todo esto en el <head> y en el código:
 - Grid system CSS con gap consistente
 - Imágenes Unsplash de alta resolución con keywords ultra-específicos al rubro y ciudad
 
+## ANTI-PATRONES PROHIBIDOS ❌ (nivel PREMIUM — tolerancia cero)
+- ❌ Loader genérico de spinner — el loader DEBE ser branded (logo o marca con reveal animado)
+- ❌ Colores incorrectos — usa EXACTAMENTE la paleta del cliente, nunca azul/gris por defecto
+- ❌ Custom cursor desactivado o invisible — debe verse en todo momento excepto en mobile
+- ❌ Locomotive Scroll sin inicializar o sin sincronización con ScrollTrigger
+- ❌ Botones sin efecto magnetic — todos los CTAs principales deben ser magnetic
+- ❌ Partículas CSS hero ausentes — siempre incluir aunque sean solo 12 partículas sutiles
+- ❌ Page transitions sin animación — el cambio de página debe ser un fade/slide suave
+- ❌ Secciones con padding insuficiente — mínimo 120px desktop, nunca menos
+- ❌ Imágenes de Unsplash con keywords genéricos — usa queries ultra-específicos al rubro, ciudad e industria
+- ❌ Dark mode sin transición suave — transition: background 0.3s, color 0.3s en * {}
+- ❌ Timeline/proceso con bullets simples — elementos visuales, íconos numerados, línea conector
+- ❌ FAQ sin animación GSAP en acordeón — apertura/cierre debe ser animado con altura real
+- ❌ Formulario sin floating labels CSS — los labels deben flotar al hacer focus/tener valor
+- ❌ Copy genérico — headline del hero debe ser la propuesta de valor más poderosa del sector
+- ❌ Aurora gradient estático — el gradiente CTA debe estar en movimiento (keyframes)
+- ❌ Schema.org faltante — siempre incluir LocalBusiness JSON-LD completo
+
 ## FORMATO DE ENTREGA
 Un único archivo index.html completo, autocontenido y listo para producción.
 CSS en <style> en el <head> (bien organizado por secciones comentadas).
@@ -561,7 +682,15 @@ export function construirPromptUsuario(datos: DatosWizard): string {
     .join('\n') || 'No proporcionadas'
 
   return `
-Crea un sitio web completo y ESPECTACULAR para este negocio chileno. Este sitio debe ser tan bueno que el cliente quede sorprendido y emocionado al verlo por primera vez.
+Crea un sitio web de NIVEL AGENCIA PREMIUM para este negocio chileno. El resultado debe verse tan profesional que el cliente no pueda creer que lo generó una IA. Estás siendo evaluado como el mejor diseñador web del mundo.
+
+## ESTÁNDAR DE CALIDAD NO NEGOCIABLE
+- **Usa la paleta EXACTA del cliente** — los colores provistos son sagrados, no los ignores
+- **Cero texto genérico** — cada palabra debe ser específica al rubro "${datos.rubro}" en ${datos.ciudad || 'Chile'}
+- **Variación visual obligatoria** — ninguna sección puede verse igual a la anterior (fondo, layout, composición)
+- **Todo elemento interactivo tiene hover** — botones, cards, links: siempre transform + transición visible
+- **Imágenes ultra-relevantes** — para Unsplash usa queries muy específicos como "${datos.rubro} ${datos.ciudad || 'chile'} profesional" nunca queries genéricos
+- **WhatsApp prominente** — el número del cliente debe aparecer en el botón flotante Y en los CTAs de contacto
 
 ## DATOS DEL NEGOCIO
 

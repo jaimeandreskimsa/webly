@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import {
   LayoutDashboard, Users, Globe, CreditCard,
-  Settings, LogOut, Shield, BarChart3, Zap, HelpCircle, Package
+  Settings, LogOut, Shield, BarChart3, Zap, HelpCircle, Package, Brain
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,7 @@ const navItems = [
   { href: '/admin/estadisticas', icon: BarChart3, label: 'Estadísticas' },
   { href: '/admin/solicitudes', icon: HelpCircle, label: 'Solicitudes', badge: true },
   { href: '/admin/configuracion', icon: Settings, label: 'Configuración' },
+  { href: '/admin/configuracion?tab=prompts', icon: Brain, label: 'Prompts IA', sub: true },
 ]
 
 interface AdminSidebarProps {
@@ -27,6 +28,8 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ user }: AdminSidebarProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const currentTab = searchParams.get('tab')
   const [solicitudesPendientes, setSolicitudesPendientes] = useState(0)
 
   useEffect(() => {
@@ -60,9 +63,19 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
       {/* Nav */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = item.exact
-            ? pathname === item.href
-            : pathname.startsWith(item.href)
+          let isActive: boolean
+          if (item.href.includes('?tab=prompts')) {
+            isActive = pathname === '/admin/configuracion' && currentTab === 'prompts'
+          } else if (item.exact) {
+            isActive = pathname === item.href
+          } else {
+            // Para Configuración: activo solo si NO estamos en tab=prompts
+            if (item.href === '/admin/configuracion') {
+              isActive = pathname.startsWith(item.href) && currentTab !== 'prompts'
+            } else {
+              isActive = pathname.startsWith(item.href)
+            }
+          }
           const count = item.badge ? solicitudesPendientes : 0
           return (
             <Link
@@ -70,13 +83,14 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
               href={item.href}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group',
+                item.sub ? 'ml-3 py-2' : '',
                 isActive
                   ? 'bg-red-500/15 text-red-300 border border-red-500/25'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
               )}
             >
-              <item.icon className={cn('w-4 h-4', isActive ? 'text-red-400' : '')} />
-              <span className="flex-1">{item.label}</span>
+              <item.icon className={cn('w-4 h-4', isActive ? 'text-red-400' : '', item.sub ? 'w-3.5 h-3.5' : '')} />
+              <span className={cn('flex-1', item.sub ? 'text-xs' : '')}>{item.label}</span>
               {count > 0 && (
                 <span className="ml-auto text-xs font-bold bg-indigo-500 text-white rounded-full w-5 h-5 flex items-center justify-center shrink-0">
                   {count > 9 ? '9+' : count}
