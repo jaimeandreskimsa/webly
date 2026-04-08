@@ -32,7 +32,6 @@ function GenerandoContent() {
   const sitioId = params.id as string
 
   const [progreso, setProgreso] = useState(0)
-  const [fraseIndex, setFraseIndex] = useState(0)
   const [estado, setEstado] = useState<'generando' | 'listo' | 'error'>('generando')
   const [errorMsg, setErrorMsg] = useState('')
   const [iniciado, setIniciado] = useState(false)
@@ -109,6 +108,17 @@ function GenerandoContent() {
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data)
+
+        // Catch-up al reconectar: un solo mensaje con todo el HTML acumulado
+        if (data.catchup) {
+          const len = (data.catchup as string).length
+          charsRef.current = len
+          lastChunkTimeRef.current = Date.now()
+          setHtmlOutput(data.catchup)
+          const esperado = CHARS_ESPERADOS[planRef.current] ?? 60_000
+          // Saltar directamente al porcentaje correcto (sin animar desde 0)
+          setProgreso(Math.min(88, (len / esperado) * 100))
+        }
 
         if (data.chunk) {
           charsRef.current += data.chunk.length

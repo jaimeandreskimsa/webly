@@ -280,9 +280,11 @@ export async function GET(req: NextRequest) {
         controller.enqueue(sseEncode({ prompt: s.prompt }))
       }
 
-      // Catch-up: enviar todos los chunks acumulados hasta ahora
-      for (const c of s.chunks) {
-        controller.enqueue(sseEncode({ chunk: c }))
+      // Catch-up: UN SOLO mensaje con todo el HTML acumulado hasta ahora.
+      // Evita enviar miles de mensajes individuales que saturan React state updates.
+      const catchupHTML = s.chunks.join('')
+      if (catchupHTML.length > 0) {
+        controller.enqueue(sseEncode({ catchup: catchupHTML }))
       }
 
       // Si ya terminó mientras nos conectábamos
