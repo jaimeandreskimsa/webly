@@ -102,7 +102,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Nuevo sitio: cambiar estado a borrador y disparar generación
+    // Express nuevo ('en'): el usuario todavía no llenó el wizard — NO generar aún
+    // El usuario será redirigido a /dashboard/sitios/{id}/configurar para llenar los datos
+    if (tipo === 'en') {
+      await db
+        .update(sitios)
+        .set({ estado: 'borrador', updatedAt: new Date() })
+        .where(eq(sitios.id, sitioId))
+      console.log(`[webhook-flow] Pago express aprobado: sitio ${sitioId} — pendiente de configuración`)
+      return NextResponse.json({ ok: true })
+    }
+
+    // Nuevo sitio (flujo anterior): cambiar estado a borrador y disparar generación
     await db
       .update(sitios)
       .set({ estado: 'borrador', updatedAt: new Date() })

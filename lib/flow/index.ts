@@ -140,7 +140,7 @@ export interface PlanPagoParams {
   userId: string
   nombreEmpresa: string
   email: string
-  tipo?: 'nuevo_sitio' | 'cambiar_plan'
+  tipo?: 'nuevo_sitio' | 'cambiar_plan' | 'express_nuevo'
 }
 
 export async function crearPagoPlan(params: PlanPagoParams): Promise<{ checkoutUrl: string; flowToken: string }> {
@@ -156,12 +156,15 @@ export async function crearPagoPlan(params: PlanPagoParams): Promise<{ checkoutU
 
   const urlReturn = params.tipo === 'cambiar_plan'
     ? `${appUrl}/dashboard/sitios/${params.sitioId}?plan_cambiado=1`
+    : params.tipo === 'express_nuevo'
+    ? `${appUrl}/dashboard/sitios/${params.sitioId}/configurar`
     : `${appUrl}/dashboard/sitios/${params.sitioId}/generando`
 
   // Flow limita commerceOrder a 45 chars — usar primeros 8 chars de cada UUID + plan
   const shortSitio = params.sitioId.replace(/-/g, '').slice(0, 10)
   const shortUser  = params.userId.replace(/-/g, '').slice(0, 8)
-  const shortTipo  = (params.tipo || 'nuevo_sitio') === 'nuevo_sitio' ? 'ns' : 'cp'
+  const tipoNorm = params.tipo || 'nuevo_sitio'
+  const shortTipo  = tipoNorm === 'nuevo_sitio' ? 'ns' : tipoNorm === 'cambiar_plan' ? 'cp' : 'en'
   const commerceOrder = `${shortSitio}${shortUser}${params.plan}${shortTipo}`.slice(0, 45)
 
   // Flow valida que el email tenga dominio real con MX records.
