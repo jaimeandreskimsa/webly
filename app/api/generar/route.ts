@@ -251,7 +251,8 @@ export async function GET(req: NextRequest) {
     .where(eq(sitios.id, sitioId))
     .limit(1)
 
-  if (!sitio || sitio.userId !== session.user.id) {
+  const esAdmin = (session.user as any).rol === 'admin'
+  if (!sitio || (!esAdmin && sitio.userId !== session.user.id)) {
     return new Response('No autorizado', { status: 403 })
   }
 
