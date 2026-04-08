@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {
   Globe, ExternalLink, Edit2, Download, Clock,
-  CheckCircle2, Loader2, AlertCircle, MoreVertical, Trash2, History
+  CheckCircle2, Loader2, AlertCircle, ArrowRight
 } from 'lucide-react'
 import { formatFecha } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -58,7 +58,7 @@ export function SitioCard({ sitio }: SitioCardProps) {
   const contenido = (sitio.contenidoJson as any) ?? {}
 
   return (
-    <div className="glass glass-hover rounded-2xl border border-white/5 p-5 group flex flex-col gap-4">
+    <div className="glass rounded-2xl border border-white/5 p-5 group flex flex-col gap-4 hover:border-indigo-500/30 transition-all">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -108,34 +108,33 @@ export function SitioCard({ sitio }: SitioCardProps) {
           {formatFecha(sitio.updatedAt)}
         </span>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Link
-            href={`/dashboard/sitios/${sitio.id}`}
-            className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-all"
-            title="Ver sitio"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-          <Link
-            href={`/dashboard/sitios/${sitio.id}/editar`}
-            className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-all"
-            title="Editar"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
-          </Link>
+        <div className="flex items-center gap-1">
+          {/* Descargar ZIP */}
           <a
             href={`/api/sitios/${sitio.id}/download`}
+            onClick={e => e.stopPropagation()}
             className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-all"
             title="Descargar ZIP"
           >
             <Download className="w-3.5 h-3.5" />
           </a>
+          {/* Editar */}
           <Link
-            href={`/dashboard/sitios/${sitio.id}/versiones`}
+            href={`/dashboard/sitios/${sitio.id}/editar`}
+            onClick={e => e.stopPropagation()}
             className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-all"
-            title="Historial"
+            title="Editar contenido"
           >
-            <History className="w-3.5 h-3.5" />
+            <Edit2 className="w-3.5 h-3.5" />
+          </Link>
+          {/* Ver detalle */}
+          <Link
+            href={`/dashboard/sitios/${sitio.id}`}
+            onClick={e => e.stopPropagation()}
+            className="p-1.5 rounded-lg hover:bg-indigo-500/20 text-muted-foreground hover:text-indigo-400 transition-all"
+            title="Ver detalle"
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>

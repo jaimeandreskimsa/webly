@@ -32,12 +32,17 @@ export default async function SitioPage({
 
   if (!sitio) notFound()
 
-  const versiones = await db
-    .select()
-    .from(versionesSitio)
-    .where(eq(versionesSitio.sitioId, params.id))
-    .orderBy(desc(versionesSitio.numeroVersion))
-    .limit(10)
+  let versiones: typeof versionesSitio.$inferSelect[] = []
+  try {
+    versiones = await db
+      .select()
+      .from(versionesSitio)
+      .where(eq(versionesSitio.sitioId, params.id))
+      .orderBy(desc(versionesSitio.numeroVersion))
+      .limit(10)
+  } catch {
+    // tabla puede no existir aún en producción
+  }
 
   const versionActual = versiones.find(v => v.esActual)
   const contenido = (sitio.contenidoJson as any) ?? {}

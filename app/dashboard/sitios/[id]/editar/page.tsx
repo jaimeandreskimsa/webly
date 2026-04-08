@@ -28,18 +28,24 @@ export default async function EditarSitioPage({
 
   // Verificar ediciones disponibles
   const ahora = new Date()
-  const [edicionesMes] = await db
-    .select()
-    .from(edicionesMensuales)
-    .where(
-      and(
-        eq(edicionesMensuales.userId, session.user.id as string),
-        eq(edicionesMensuales.sitioId, params.id),
-        eq(edicionesMensuales.mes, ahora.getMonth() + 1),
-        eq(edicionesMensuales.año, ahora.getFullYear())
+  let edicionesMes: typeof edicionesMensuales.$inferSelect | undefined
+  try {
+    const [row] = await db
+      .select()
+      .from(edicionesMensuales)
+      .where(
+        and(
+          eq(edicionesMensuales.userId, session.user.id as string),
+          eq(edicionesMensuales.sitioId, params.id),
+          eq(edicionesMensuales.mes, ahora.getMonth() + 1),
+          eq(edicionesMensuales.año, ahora.getFullYear())
+        )
       )
-    )
-    .limit(1)
+      .limit(1)
+    edicionesMes = row
+  } catch {
+    // tabla puede no existir aún en producción
+  }
 
   const limite = PLAN_LIMITE_EDICIONES[sitio.plan as keyof typeof PLAN_LIMITE_EDICIONES]
   const edicionesUsadas = edicionesMes?.edicionesUsadas ?? 0
