@@ -6,7 +6,7 @@ import { obtenerEstadoPago, getFlowCredentials } from '@/lib/flow'
 
 export async function POST(req: NextRequest) {
   try {
-    const { sitioId } = await req.json()
+    const { sitioId, bypass } = await req.json()
 
     if (!sitioId) {
       return NextResponse.json({ aprobado: false, error: 'sitioId requerido' }, { status: 400 })
@@ -26,6 +26,12 @@ export async function POST(req: NextRequest) {
 
     if (!sitio) {
       return NextResponse.json({ aprobado: false, error: 'Sitio no encontrado' })
+    }
+
+    // Verificar que el sitio pertenece al usuario logueado
+    const esAdmin = (session.user as any).rol === 'admin'
+    if (!esAdmin && sitio.userId !== session.user.id) {
+      return NextResponse.json({ aprobado: false, error: 'Sin permiso' })
     }
 
     // Ya está listo en alguna forma
@@ -66,6 +72,21 @@ export async function POST(req: NextRequest) {
     // Sin token Flow todavía (pago muy reciente)
     if (!pago.flowToken) {
       return NextResponse.json({ aprobado: false })
+    }
+
+    // ── BYPASS: el usuario ya esperó suficiente y quiere continuar ────────────
+    // Sólo se activa si existe un flowToken (el usuario SÍ inició el pago en Flow).
+    // Cuando Flow confirme (webhook tardío) el sitio ya estará en borrador — ok.
+    if (bypass) {
+      await Promise.all([
+        db.update(sitios)
+          .set({ estado: 'borrador', updatedAt: new Date() })
+          .where(eq(sitios.id, sitioId)),
+        db.update(usuarios)
+          .set({ plan: sitio.plan as any, updatedAt: new Date() })
+          .where(eq(usuarios.id, sitio.userId)),
+      ])
+      return NextResponse.json({ listo: true })
     }
 
     // Consultar directamente a Flow

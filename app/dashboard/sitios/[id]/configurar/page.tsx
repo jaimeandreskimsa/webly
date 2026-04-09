@@ -1,6 +1,6 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { db, sitios } from '@/lib/db'
+import { db, sitios, pagos } from '@/lib/db'
 import { eq, and } from 'drizzle-orm'
 import { WizardConfiguracion } from '@/components/wizard/WizardConfiguracion'
 
@@ -29,9 +29,21 @@ export default async function ConfigurarSitioPage({ params, searchParams }: Prop
   }
 
   // Si el pago aún no fue confirmado, redirigir a pago-exitoso que verifica con Flow
-  // (evita hacer el call a Flow directamente aquí, lo que bloquea el render 3-8s)
   if (sitio.estado === 'pendiente_pago') {
-    redirect(`/pago-exitoso/${id}`)
+    // Antes de redirigir, verificar si el pago ya está aprobado en DB
+    // (webhook pudo haber actualizado pagos pero no sitios por un error intermitente)
+    const todosPagos = await db.select().from(pagos).where(eq(pagos.userId, session.user.id as string))
+    const pagoAprobado = todosPagos
+      .filter(p => p.flowOrder?.startsWith(id + '|') && p.estado === 'aprobado')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+
+    if (pagoAprobado) {
+      // Auto-sanar: el pago está aprobado pero el sitio quedó en pendiente_pago
+      await db.update(sitios).set({ estado: 'borrador', updatedAt: new Date() }).where(eq(sitios.id, id))
+      // Continuar normalmente (no redirect)
+    } else {
+      redirect(`/pago-exitoso/${id}`)
+    }
   }
 
   return (
