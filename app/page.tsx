@@ -4,6 +4,7 @@ import {
   Star, Rocket, Code2, Palette, BarChart3, MessageSquare,
   ChevronRight, Building2, ExternalLink
 } from 'lucide-react'
+import { getPlanesConfig } from '@/lib/planes'
 
 // ─── Pricing Data ─────────────────────────────────────────────────────────────
 
@@ -318,7 +319,13 @@ function ComoFunciona() {
   )
 }
 
-function Planes() {
+async function Planes() {
+  // Leer precios desde DB (editables desde /admin/planes)
+  const preciosDB = await getPlanesConfig()
+  const fmt = (id: string, fallback: string) =>
+    preciosDB[id] ? preciosDB[id].toLocaleString('es-CL') : fallback
+  const planesConPrecios = planes.map(p => ({ ...p, precio: fmt(p.id, p.precio) }))
+
   return (
     <section id="planes" className="py-24 relative">
       {/* Background glow */}
@@ -342,7 +349,7 @@ function Planes() {
         </div>
 
         <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
-          {planes.map((plan) => (
+          {planesConPrecios.map((plan) => (
             <div
               key={plan.id}
               className={`relative rounded-2xl border ${plan.border} bg-gradient-to-b ${plan.color} p-8 flex flex-col ${

@@ -17,10 +17,10 @@ interface PlanConfigLite {
 }
 
 /**
- * Devuelve el precio de un plan leyendo primero la configuración guardada en DB
- * por el superadmin. Usa PLAN_PRECIOS como fallback si no hay configuración.
+ * Devuelve un map {planId -> precio} leyendo desde DB.
+ * Usada en el home, en el selector de planes y en crear-express.
  */
-export async function getPrecioPlan(planId: string): Promise<number> {
+export async function getPlanesConfig(): Promise<Record<string, number>> {
   try {
     const [row] = await db
       .select()
@@ -30,10 +30,21 @@ export async function getPrecioPlan(planId: string): Promise<number> {
 
     if (row?.valor) {
       const planes = JSON.parse(row.valor) as PlanConfigLite[]
-      const found = planes.find(p => p.id === planId)
-      if (found && found.precio > 0) return found.precio
+      const map: Record<string, number> = {}
+      planes.forEach(p => { if (p.precio > 0) map[p.id] = p.precio })
+      return map
     }
   } catch {}
 
-  return PLAN_PRECIOS[planId as keyof typeof PLAN_PRECIOS] ?? 0
+  // Fallback: usar PLAN_PRECIOS hardcodeados
+  return { ...PLAN_PRECIOS } as Record<string, number>
+}
+
+/**
+ * Devuelve el precio de un plan leyendo primero la configuración guardada en DB
+ * por el superadmin. Usa PLAN_PRECIOS como fallback si no hay configuración.
+ */
+export async function getPrecioPlan(planId: string): Promise<number> {
+  const precios = await getPlanesConfig()
+  return precios[planId] ?? (PLAN_PRECIOS[planId as keyof typeof PLAN_PRECIOS] ?? 0)
 }

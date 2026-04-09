@@ -58,11 +58,16 @@ const PLANES_GRID = [
 
 interface Props {
   isAdmin: boolean
+  precios: Record<string, number>
 }
 
-export function NuevoSitioClient({ isAdmin }: Props) {
+export function NuevoSitioClient({ isAdmin, precios }: Props) {
   const searchParams = useSearchParams()
   const router = useRouter()
+
+  // Formatea un precio desde DB o usa el fallback hardcodeado
+  const precioFmt = (id: string, fallback: string) =>
+    precios[id] ? `$${precios[id].toLocaleString('es-CL')}` : fallback
 
   const [planSeleccionado, setPlanSeleccionado] = useState(searchParams.get('plan') || 'pro')
   const [error, setError] = useState('')
@@ -189,7 +194,9 @@ export function NuevoSitioClient({ isAdmin }: Props) {
                       <p className="text-xs text-muted-foreground truncate">{p.descripcion}</p>
                     </div>
                     {/* Precio alineado a la derecha en la misma fila del nombre */}
-                    <p className={`text-lg font-black ${p.color} ml-auto shrink-0`}>{p.precio}</p>
+                    <p className={`text-lg font-black ${p.color} ml-auto shrink-0`}>
+                      {precioFmt(p.id, p.precio)}
+                    </p>
                   </div>
                   <ul className="space-y-1">
                     {p.features.map((f) => (
@@ -211,7 +218,7 @@ export function NuevoSitioClient({ isAdmin }: Props) {
               className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl btn-gradient text-white font-bold text-base hover:scale-[1.02] transition-transform"
             >
               <CreditCard className="w-5 h-5" />
-              Pagar plan {planActual.nombre} · {planActual.precio}
+              Pagar plan {planActual.nombre} · {precioFmt(planActual.id, planActual.precio)}
             </button>
 
             <div className="flex items-center justify-center gap-6 mt-4 text-xs text-muted-foreground">
