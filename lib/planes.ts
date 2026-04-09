@@ -3,6 +3,7 @@
  * Los precios son editables desde /admin/planes — este módulo
  * los lee desde DB (con fallback al valor hardcoded en PLAN_PRECIOS).
  */
+import { unstable_noStore as noStore } from 'next/cache'
 import { db } from '@/lib/db'
 import { configuracion } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -21,6 +22,7 @@ interface PlanConfigLite {
  * Usada en el home, en el selector de planes y en crear-express.
  */
 export async function getPlanesConfig(): Promise<Record<string, number>> {
+  noStore() // Evita que Next.js cachee esta llamada — los precios deben ser siempre frescos
   try {
     const [row] = await db
       .select()
