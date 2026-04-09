@@ -9,6 +9,29 @@ import {
 
 const planes = [
   {
+    id: 'prueba',
+    nombre: 'Prueba',
+    precio: '1.000',
+    descripcion: 'Prueba la plataforma por solo $1.000 CLP',
+    color: 'from-pink-500/20 to-rose-500/20',
+    border: 'border-pink-500/30',
+    badge: '¡PRUÉBALA YA!',
+    features: [
+      '1 Landing page con IA',
+      '4-6 secciones optimizadas',
+      'Imágenes de stock con IA',
+      'Formulario de contacto',
+      'SEO básico incluido',
+      'Descarga ZIP',
+      'Animaciones incluidas',
+      'Soporte por email',
+      'Pago único sin sorpresas',
+    ],
+    limitaciones: [],
+    cta: '¡Probar por $1.000!',
+    ctaColor: 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400',
+  },
+  {
     id: 'basico',
     nombre: 'Básico',
     precio: '50.000',
@@ -341,7 +364,7 @@ function Planes() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
+        <div className="grid md:grid-cols-2 xl:grid-cols-5 gap-6 items-stretch">
           {planes.map((plan) => (
             <div
               key={plan.id}
@@ -355,6 +378,8 @@ function Planes() {
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-600'
                     : plan.id === 'premium'
                     ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+                    : plan.nombre === 'Prueba'
+                    ? 'bg-gradient-to-r from-pink-500 to-rose-500'
                     : 'bg-gradient-to-r from-violet-500 to-purple-600'
                 }`}>
                   {plan.badge}
