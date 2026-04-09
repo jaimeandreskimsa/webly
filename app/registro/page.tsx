@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Zap, Eye, EyeOff, ArrowRight, Loader2, Check } from 'lucide-react'
 
 const planesInfo = {
+  prueba:  { nombre: 'Prueba',   precio: '$1.000',    color: 'text-pink-400'    },
   basico:  { nombre: 'Básico',  precio: '$50.000',   color: 'text-blue-400'    },
   pro:     { nombre: 'Pro',     precio: '$100.000',  color: 'text-violet-400'  },
   premium: { nombre: 'Premium', precio: '$300.000',  color: 'text-amber-400'  },

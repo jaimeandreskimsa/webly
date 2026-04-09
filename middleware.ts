@@ -30,7 +30,9 @@ export default auth((req) => {
   }
 
   if (isDashboardRoute && !isLoggedIn) {
-    return NextResponse.redirect(new URL('/login', nextUrl))
+    const loginUrl = new URL('/login', nextUrl)
+    loginUrl.searchParams.set('callbackUrl', nextUrl.pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
   if (isAuthRoute && isLoggedIn) {

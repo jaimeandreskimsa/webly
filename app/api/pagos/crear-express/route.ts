@@ -17,12 +17,16 @@ export async function POST(req: NextRequest) {
     const { plan } = await req.json()
     const rol = (session.user as any).rol
 
+    // Detectar la URL base del servidor: usar env var si existe, sino inferir del host
+    const host = req.headers.get('host') || 'localhost:3000'
+    const proto = req.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https')
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`
+
     // ── Plan DEMO: solo admins, salta Flow por completo ───────────────────────
     if (plan === 'demo') {
       if (rol !== 'admin') {
         return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
       }
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       const slug = `demo-${Date.now().toString(36)}`
       const [nuevoSitio] = await db.insert(sitios).values({
         userId,
@@ -51,7 +55,6 @@ export async function POST(req: NextRequest) {
       .limit(1)
 
     if (pagoAprobado) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       const planDelPago = pagoAprobado.plan as string
       const slug = `sitio-${planDelPago}-${Date.now().toString(36)}`
       const [nuevoSitio] = await db.insert(sitios).values({
@@ -90,7 +93,6 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Paso 2: Llamar a Flow ─────────────────────────────────────────────────
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const monto = PLAN_PRECIOS[plan as keyof typeof PLAN_PRECIOS]
     const planNombre = PLAN_NOMBRES[plan as keyof typeof PLAN_NOMBRES]
     const shortSitio = nuevoSitio.id.replace(/-/g, '').slice(0, 10)
