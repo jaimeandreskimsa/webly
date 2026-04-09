@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, AlertCircle, CreditCard, Zap, Shield, FlaskConical, CheckCircle2, Sparkles } from 'lucide-react'
+import { Loader2, AlertCircle, CreditCard, Zap, Shield, FlaskConical, CheckCircle2, Sparkles, Crown, Building2 } from 'lucide-react'
 
 const planNombres: Record<string, string> = {
   basico: 'Básico',
@@ -28,6 +28,58 @@ const planDescripciones: Record<string, string[]> = {
   demo: ['Plan Premium completo', 'Sin costo', 'Solo para administradores'],
 }
 
+const PLANES_GRID = [
+  {
+    id: 'basico',
+    nombre: 'Básico',
+    precio: '$1.000',
+    descripcion: 'Para empezar rápido',
+    icon: Zap,
+    color: 'text-blue-400',
+    border: 'border-blue-500/40',
+    bg: 'bg-blue-500/10',
+    ring: 'ring-blue-500',
+    features: ['1 sitio web', 'Dominio personalizado', 'Soporte por email'],
+  },
+  {
+    id: 'pro',
+    nombre: 'Pro',
+    precio: '$100.000',
+    descripcion: 'El más popular',
+    icon: Sparkles,
+    color: 'text-indigo-400',
+    border: 'border-indigo-500/40',
+    bg: 'bg-indigo-500/10',
+    ring: 'ring-indigo-500',
+    popular: true,
+    features: ['3 sitios web', 'Generación con IA', 'Dominio personalizado', 'Soporte prioritario'],
+  },
+  {
+    id: 'premium',
+    nombre: 'Premium',
+    precio: '$300.000',
+    descripcion: 'Máximo potencial',
+    icon: Crown,
+    color: 'text-violet-400',
+    border: 'border-violet-500/40',
+    bg: 'bg-violet-500/10',
+    ring: 'ring-violet-500',
+    features: ['Sitios ilimitados', 'IA avanzada', 'Soporte 24/7', 'Analíticas'],
+  },
+  {
+    id: 'broker',
+    nombre: 'Broker',
+    precio: '$700.000',
+    descripcion: 'Para agencias',
+    icon: Building2,
+    color: 'text-amber-400',
+    border: 'border-amber-500/40',
+    bg: 'bg-amber-500/10',
+    ring: 'ring-amber-500',
+    features: ['Todo Premium', 'Multi-cliente', 'White label', 'API access'],
+  },
+]
+
 interface Props {
   planPagado: string | null
   isAdmin: boolean
@@ -36,8 +88,8 @@ interface Props {
 export function NuevoSitioClient({ planPagado, isAdmin }: Props) {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const plan = searchParams.get('plan') || 'pro'
 
+  const [planSeleccionado, setPlanSeleccionado] = useState(searchParams.get('plan') || 'pro')
   const [error, setError] = useState('')
   const [intentando, setIntentando] = useState(false)
 
@@ -48,7 +100,7 @@ export function NuevoSitioClient({ planPagado, isAdmin }: Props) {
       const res = await fetch('/api/pagos/crear-express', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan: planSeleccionado }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago')
@@ -150,78 +202,110 @@ export function NuevoSitioClient({ planPagado, isAdmin }: Props) {
     )
   }
 
-  // ── Usuario sin plan: flujo de pago normal ────────────────────────────────
-  const isDemo = plan === 'demo'
-  const planNombre = planNombres[plan] || 'Pro'
-  const planPrecio = planPrecios[plan] || '$100.000'
-  const planFeatures = planDescripciones[plan] || planDescripciones['pro']
+  // ── Usuario sin plan: selector de planes ───────────────────────────────────
+  const isDemo = planSeleccionado === 'demo'
+  const planActual = PLANES_GRID.find(p => p.id === planSeleccionado) ?? PLANES_GRID[1]
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] py-12">
-      <div className="w-full max-w-md">
-        {isDemo ? (
-          <div className="flex justify-center mb-6">
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-400 text-xs font-semibold">
-              <FlaskConical className="w-3.5 h-3.5" />
-              Modo Demo — Solo administradores
-            </span>
+    <div className="py-10">
+      {/* Título */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-black mb-2">Elige tu plan</h1>
+        <p className="text-muted-foreground text-sm">Pago único · Sin suscripción mensual</p>
+      </div>
+
+      {isDemo ? (
+        // Modo demo solo para admin
+        <div className="max-w-md mx-auto">
+          <div className="glass border border-violet-500/30 rounded-2xl p-8 text-center">
+            <FlaskConical className="w-12 h-12 text-violet-400 mx-auto mb-4" />
+            <h2 className="text-xl font-black mb-2">Modo Demo</h2>
+            <p className="text-muted-foreground text-sm mb-6">Solo para administradores. Sin costo.</p>
+            <button
+              onClick={iniciarPago}
+              className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl btn-gradient text-white font-bold"
+            >
+              <FlaskConical className="w-5 h-5" /> Crear sitio demo
+            </button>
           </div>
-        ) : (
-          <div className="flex justify-center mb-6">
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-semibold">
-              <CreditCard className="w-3.5 h-3.5" />
-              Pago único · Sin suscripción
-            </span>
-          </div>
-        )}
-
-        <div className="glass border border-white/10 rounded-2xl p-8 text-center">
-          <h1 className="text-3xl font-black mb-1">Plan {planNombre}</h1>
-          <p className="text-4xl font-black text-indigo-400 mt-3 mb-6">{planPrecio}</p>
-
-          <ul className="space-y-2.5 mb-8 text-left">
-            {planFeatures.map((f) => (
-              <li key={f} className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
-                {f}
-              </li>
-            ))}
-          </ul>
-
-          <button
-            onClick={iniciarPago}
-            className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl btn-gradient text-white font-bold text-base hover:scale-[1.02] transition-transform"
-          >
-            {isDemo ? (
-              <><FlaskConical className="w-5 h-5" /> Crear sitio demo</>
-            ) : (
-              <><CreditCard className="w-5 h-5" /> Pagar con Flow</>
-            )}
-          </button>
         </div>
+      ) : (
+        <>
+          {/* Grid de planes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            {PLANES_GRID.map((p) => {
+              const Icon = p.icon
+              const seleccionado = planSeleccionado === p.id
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setPlanSeleccionado(p.id)}
+                  className={
+                    `relative text-left w-full rounded-2xl border p-5 transition-all duration-200 ` +
+                    (seleccionado
+                      ? `glass ring-2 ${p.ring} border-transparent`
+                      : `glass border-white/10 hover:border-white/20`)
+                  }
+                >
+                  {p.popular && (
+                    <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300">
+                      Popular
+                    </span>
+                  )}
+                  <div className={`w-10 h-10 rounded-xl ${p.bg} border ${p.border} flex items-center justify-center mb-3`}>
+                    <Icon className={`w-5 h-5 ${p.color}`} />
+                  </div>
+                  <div className="flex items-baseline gap-2 mb-0.5">
+                    <span className="font-black text-lg">{p.nombre}</span>
+                    {seleccionado && <CheckCircle2 className="w-4 h-4 text-green-400" />}
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">{p.descripcion}</p>
+                  <p className={`text-2xl font-black ${p.color} mb-3`}>{p.precio}</p>
+                  <ul className="space-y-1.5">
+                    {p.features.map((f) => (
+                      <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </button>
+              )
+            })}
+          </div>
 
-        {!isDemo && (
-          <div className="flex items-center justify-center gap-6 mt-5 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-green-400" />
-              Pago 100% seguro
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CreditCard className="w-3.5 h-3.5 text-blue-400" />
-              Flow.cl
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-yellow-400" />
-              Sitio en minutos
+          {/* CTA */}
+          <div className="max-w-md mx-auto">
+            <button
+              onClick={iniciarPago}
+              className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl btn-gradient text-white font-bold text-base hover:scale-[1.02] transition-transform"
+            >
+              <CreditCard className="w-5 h-5" />
+              Pagar plan {planActual.nombre} · {planActual.precio}
+            </button>
+
+            <div className="flex items-center justify-center gap-6 mt-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-green-400" />
+                Pago 100% seguro
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-blue-400" />
+                Flow.cl
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-yellow-400" />
+                Sitio en minutos
+              </div>
             </div>
           </div>
-        )}
+        </>
+      )}
 
-        <div className="text-center mt-5">
-          <a href="/dashboard" className="text-xs text-muted-foreground hover:text-white transition-colors">
-            ← Volver al dashboard
-          </a>
-        </div>
+      <div className="text-center mt-6">
+        <a href="/dashboard" className="text-xs text-muted-foreground hover:text-white transition-colors">
+          ← Volver al dashboard
+        </a>
       </div>
     </div>
   )
