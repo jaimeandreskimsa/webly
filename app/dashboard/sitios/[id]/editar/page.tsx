@@ -30,27 +30,33 @@ export default async function EditarSitioPage({
 
   if (!sitio) notFound()
 
-  // Verificar que existe una versión generada para editar
-  let tieneVersion = false
+  // Obtener la versión actual y su HTML
+  let htmlActual: string | null = null
   try {
     const [version] = await db
-      .select({ id: versionesSitio.id })
+      .select({ htmlCompleto: versionesSitio.htmlCompleto })
       .from(versionesSitio)
       .where(and(eq(versionesSitio.sitioId, id), eq(versionesSitio.esActual, true)))
       .limit(1)
-    tieneVersion = !!version
+    htmlActual = version?.htmlCompleto ?? null
   } catch {}
 
+  const tieneVersion = !!htmlActual
   const limite = PLAN_LIMITE_EDICIONES[sitio.plan as keyof typeof PLAN_LIMITE_EDICIONES]
   const edicionesUsadas = Math.max(0, (sitio.totalEdiciones ?? 1) - 1)
   const puedeEditar = edicionesUsadas < limite
 
+  // Layout full-width cuando hay versión (para mostrar el editor visual split)
+  const containerClass = tieneVersion
+    ? 'w-full'
+    : 'max-w-3xl mx-auto'
+
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-black mb-2">Editar sitio</h1>
+    <div className={containerClass}>
+      <div className="mb-6">
+        <h1 className="text-2xl font-black mb-1">Editar sitio</h1>
         <p className="text-muted-foreground text-sm">
-          {edicionesUsadas}/{limite} ediciones usadas · {sitio.nombre}
+          {edicionesUsadas}/{limite} ediciones con IA usadas · {sitio.nombre}
         </p>
       </div>
 
@@ -83,8 +89,14 @@ export default async function EditarSitioPage({
           </a>
         </div>
       ) : (
-        <EditorSitio sitio={sitio} edicionesUsadas={edicionesUsadas} limiteEdiciones={limite} />
+        <EditorSitio
+          sitio={sitio}
+          edicionesUsadas={edicionesUsadas}
+          limiteEdiciones={limite}
+          htmlActual={htmlActual}
+        />
       )}
     </div>
   )
 }
+

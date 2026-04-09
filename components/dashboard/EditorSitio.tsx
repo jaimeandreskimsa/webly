@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Loader2, Sparkles, ArrowLeft, ArrowRight, MessageSquare,
   AlertTriangle, Building2, Briefcase, Palette, ImagePlus,
-  Phone, CheckCircle2, RefreshCw, Save, Wand2,
+  Phone, CheckCircle2, RefreshCw, Save, Wand2, Monitor,
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -16,11 +16,13 @@ import { StepServicios } from '@/components/wizard/steps/StepServicios'
 import { StepDiseno } from '@/components/wizard/steps/StepDiseno'
 import { StepMedia } from '@/components/wizard/steps/StepMedia'
 import { StepContacto } from '@/components/wizard/steps/StepContacto'
+import { EditorVisual } from '@/components/dashboard/EditorVisual'
 
 interface EditorSitioProps {
   sitio: Sitio
   edicionesUsadas: number
   limiteEdiciones: number
+  htmlActual?: string | null
 }
 
 // ─── Pasos del wizard de edición (sin pago) ──────────────────────────────────
@@ -38,12 +40,12 @@ function parsePlan(p: string | null | undefined): DatosWizard['plan'] {
   return 'pro'
 }
 
-export function EditorSitio({ sitio, edicionesUsadas, limiteEdiciones }: EditorSitioProps) {
+export function EditorSitio({ sitio, edicionesUsadas, limiteEdiciones, htmlActual }: EditorSitioProps) {
   const router = useRouter()
   const restantes = limiteEdiciones - edicionesUsadas
 
   // ─── Tab activo ──────────────────────────────────────────────────────────
-  const [tab, setTab] = useState<'secciones' | 'ia'>('secciones')
+  const [tab, setTab] = useState<'visual' | 'secciones' | 'ia'>(htmlActual ? 'visual' : 'secciones')
 
   // ─── Estado wizard de secciones ─────────────────────────────────────────
   const existing = (sitio.contenidoJson ?? {}) as Partial<DatosWizard>
@@ -196,6 +198,14 @@ export function EditorSitio({ sitio, edicionesUsadas, limiteEdiciones }: EditorS
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 glass rounded-xl border border-white/5">
+        {htmlActual && (
+          <TabBtn
+            active={tab === 'visual'}
+            onClick={() => setTab('visual')}
+            icon={Monitor}
+            label="Editor visual"
+          />
+        )}
         <TabBtn
           active={tab === 'secciones'}
           onClick={() => setTab('secciones')}
@@ -210,6 +220,15 @@ export function EditorSitio({ sitio, edicionesUsadas, limiteEdiciones }: EditorS
           badge={`${restantes}`}
         />
       </div>
+
+      {/* ── Tab: Visual ─────────────────────────────────────────────── */}
+      {tab === 'visual' && htmlActual && (
+        <EditorVisual
+          sitioId={sitio.id}
+          htmlActual={htmlActual}
+          onIrIA={() => setTab('ia')}
+        />
+      )}
 
       {/* ── Tab: Secciones ──────────────────────────────────────────────── */}
       {tab === 'secciones' && (
