@@ -4,23 +4,25 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Loader2, Zap, CheckCircle2, AlertCircle, ChevronRight, Terminal } from 'lucide-react'
 
-// Estimación de chars totales por plan (tokens × 4 chars aprox. | ajustado a nuevos límites)
+// Estimación de chars totales por plan (tokens × ~3.7 chars aprox.)
 const CHARS_ESPERADOS: Record<string, number> = {
-  basico:  22_000,  // 6k tokens × ~3.7 chars
-  pro:     45_000,  // 12k tokens × ~3.7 chars
-  premium: 100_000, // 28k tokens × ~3.6 chars
-  broker:  72_000,  // 20k tokens × ~3.6 chars
+  basico:      22_000,  //  6k tokens × ~3.7 chars
+  pro:         45_000,  // 12k tokens × ~3.7 chars
+  premium:    100_000,  // 28k tokens × ~3.6 chars
+  broker:      72_000,  // 20k tokens × ~3.6 chars
+  restaurante: 200_000, // 60k tokens × ~3.3 chars (menú + 4 páginas)
 }
 
 // Mensaje real basado en el porcentaje de progreso
-function fraseSegunProgreso(p: number): string {
+function fraseSegunProgreso(p: number, plan?: string): string {
+  const esRestaurante = plan === 'restaurante'
   if (p < 5)  return 'Conectando con Claude AI...'
-  if (p < 15) return 'Analizando los datos de tu negocio...'
+  if (p < 15) return esRestaurante ? 'Analizando tu carta y datos del restaurante...' : 'Analizando los datos de tu negocio...'
   if (p < 25) return 'Definiendo la estructura de páginas...'
-  if (p < 38) return 'Generando el HTML y semántica...'
+  if (p < 38) return esRestaurante ? 'Generando el menú digital y sección de platos...' : 'Generando el HTML y semántica...'
   if (p < 52) return 'Escribiendo los estilos CSS...'
   if (p < 65) return 'Aplicando animaciones y efectos...'
-  if (p < 75) return 'Agregando JavaScript e interactividad...'
+  if (p < 75) return esRestaurante ? 'Agregando filtros de categoría y carta interactiva...' : 'Agregando JavaScript e interactividad...'
   if (p < 85) return 'Optimizando para SEO y mobile...'
   if (p < 93) return 'Revisando el código final...'
   return 'Guardando tu sitio... casi listo ✨'
@@ -252,7 +254,7 @@ function GenerandoContent() {
             {/* Progress bar */}
             <div className="glass rounded-2xl border border-white/5 p-6 mb-6">
               <div className="flex items-center justify-between text-sm mb-3">
-                <span className="text-muted-foreground">{fraseSegunProgreso(progreso)}</span>
+                <span className="text-muted-foreground">{fraseSegunProgreso(progreso, planRef.current)}</span>
                 <span className="font-mono text-indigo-400">{Math.round(progreso)}%</span>
               </div>
               <div className="h-2 bg-white/5 rounded-full overflow-hidden">

@@ -1,11 +1,28 @@
 import { db, sitios, usuarios } from '@/lib/db'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, ilike, or } from 'drizzle-orm'
 import { formatFecha, PLAN_NOMBRES } from '@/lib/utils'
 import Link from 'next/link'
-import { Globe, ExternalLink, RefreshCw, AlertCircle, CheckCircle2, Clock, Activity, Loader2 } from 'lucide-react'
+import { Globe, ExternalLink, RefreshCw, AlertCircle, CheckCircle2, Clock, Activity, Loader2, Search } from 'lucide-react'
 import { AdminSitioActions } from '@/components/admin/AdminSitioActions'
+import { AdminSitiosBusqueda } from '@/components/admin/AdminSitiosBusqueda'
 
-export default async function AdminSitiosPage() {
+function tiempoGenerando(updatedAt: Date | null, createdAt: Date | null): string {
+  const desde = updatedAt ?? createdAt
+  if (!desde) return ''
+  const mins = Math.floor((Date.now() - new Date(desde).getTime()) / 60_000)
+  if (mins < 1) return '< 1 min'
+  if (mins < 60) return `${mins} min`
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`
+}
+
+export default async function AdminSitiosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>
+}) {
+  const { q } = await searchParams
+  const busqueda = q?.trim() ?? ''
+
   const todosSitios = await db
     .select({
       sitio: sitios,
@@ -16,6 +33,15 @@ export default async function AdminSitiosPage() {
     .leftJoin(usuarios, eq(sitios.userId, usuarios.id))
     .orderBy(desc(sitios.createdAt))
 
+  // Filtrar en memoria (tabla pequeña — si crece, mover filtro a la query)
+  const filtrados = busqueda
+    ? todosSitios.filter(({ sitio: s, usuarioNombre, usuarioEmail }) =>
+        s.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        (usuarioNombre ?? '').toLowerCase().includes(busqueda.toLowerCase()) ||
+        (usuarioEmail ?? '').toLowerCase().includes(busqueda.toLowerCase())
+      )
+    : todosSitios
+
   const total = todosSitios.length
   const publicados = todosSitios.filter(s => s.sitio.estado === 'publicado').length
   const generando = todosSitios.filter(s => s.sitio.estado === 'generando').length
@@ -23,12 +49,15 @@ export default async function AdminSitiosPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-white flex items-center gap-2">
-          <Globe className="w-6 h-6 text-indigo-400" />
-          Sitios
-        </h1>
-        <p className="text-slate-400 text-sm mt-1">{total} sitios creados en la plataforma</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+            <Globe className="w-6 h-6 text-indigo-400" />
+            Sitios
+          </h1>
+          <p className="text-slate-400 text-sm mt-1">{total} sitios creados en la plataforma</p>
+        </div>
+        <AdminSitiosBusqueda defaultValue={busqueda} />
       </div>
 
       {/* Mini stats */}
@@ -48,6 +77,11 @@ export default async function AdminSitiosPage() {
 
       {/* Tabla */}
       <div className="glass rounded-2xl border border-white/5 overflow-hidden">
+        {busqueda && (
+          <div className="px-5 py-3 border-b border-white/5 text-sm text-slate-400">
+            {filtrados.length} resultado{filtrados.length !== 1 ? 's' : ''} para <span className="text-white font-medium">"{busqueda}"</span>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -62,7 +96,7 @@ export default async function AdminSitiosPage() {
               </tr>
             </thead>
             <tbody>
-              {todosSitios.map(({ sitio: s, usuarioNombre, usuarioEmail }) => (
+              {filtrados.map(({ sitio: s, usuarioNombre, usuarioEmail }) => (
                 <tr key={s.id} className="border-b border-white/5 last:border-0 hover:bg-white/3 transition-colors">
                   <td className="px-5 py-3.5">
                     <Link href={`/admin/sitios/${s.id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -87,6 +121,11 @@ export default async function AdminSitiosPage() {
                   </td>
                   <td className="px-5 py-3.5">
                     <EstadoBadge estado={s.estado ?? 'borrador'} />
+                    {s.estado === 'generando' && (
+                      <span className="block text-[10px] text-indigo-400/60 mt-0.5 font-mono">
+                        {tiempoGenerando(s.updatedAt as Date | null, s.createdAt as Date | null)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-5 py-3.5">
                     {s.deployUrl ? (
