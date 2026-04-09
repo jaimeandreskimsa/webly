@@ -372,7 +372,7 @@ async function Planes() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-6 items-stretch">
           {planesConPrecios.map((plan) => (
             <div
               key={plan.id}
@@ -386,6 +386,8 @@ async function Planes() {
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-600'
                     : plan.id === 'premium'
                     ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+                    : plan.id === 'restaurante'
+                    ? 'bg-gradient-to-r from-orange-500 to-red-600'
                     : 'bg-gradient-to-r from-violet-500 to-purple-600'
                 }`}>
                   {plan.badge}

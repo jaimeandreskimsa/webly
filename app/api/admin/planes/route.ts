@@ -134,7 +134,11 @@ export async function GET() {
       .limit(1)
 
     if (row?.valor) {
-      return NextResponse.json(JSON.parse(row.valor))
+      const saved: PlanConfig[] = JSON.parse(row.valor)
+      // Merge: asegurar que planes nuevos (ej. restaurante) siempre aparezcan
+      const savedIds = new Set(saved.map(p => p.id))
+      const missing = DEFAULTS.filter(d => !savedIds.has(d.id))
+      return NextResponse.json([...saved, ...missing])
     }
     return NextResponse.json(DEFAULTS)
   } catch (err) {

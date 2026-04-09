@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import {
   Package, Plus, Trash2, Save, Loader2, Check,
-  Globe, Sparkles, Crown, Building2, AlertCircle, RefreshCw
+  Globe, Sparkles, Crown, Building2, AlertCircle, RefreshCw, UtensilsCrossed
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { PlanConfig } from '@/app/api/admin/planes/route'
@@ -12,7 +12,8 @@ const planMeta: Record<string, { icon: any; color: string; border: string; bg: s
   basico:  { icon: Globe,      color: 'text-blue-400',    border: 'border-blue-500/30',   bg: 'bg-blue-500/10' },
   pro:     { icon: Sparkles,   color: 'text-violet-400',  border: 'border-violet-500/30', bg: 'bg-violet-500/10' },
   premium: { icon: Crown,      color: 'text-amber-400',   border: 'border-amber-500/30',  bg: 'bg-amber-500/10' },
-  broker:  { icon: Building2,  color: 'text-emerald-400', border: 'border-emerald-500/30', bg: 'bg-emerald-500/10' },
+  broker:       { icon: Building2,       color: 'text-emerald-400', border: 'border-emerald-500/30', bg: 'bg-emerald-500/10' },
+  restaurante:  { icon: UtensilsCrossed, color: 'text-orange-400',  border: 'border-orange-500/30',  bg: 'bg-orange-500/10' },
 }
 
 export default function PlanesAdminPage() {

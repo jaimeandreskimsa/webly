@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   UtensilsCrossed, Plus, Pencil, Trash2, Star, StarOff,
   Loader2, RefreshCw, X, Check, Upload,
-  AlertCircle, CheckCircle2, ToggleLeft, ToggleRight
+  AlertCircle, CheckCircle2, ToggleLeft, ToggleRight,
+  QrCode, Download, ExternalLink, ChevronDown, ChevronUp
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -50,10 +51,57 @@ export default function CartaPage() {
   const [uploadingImg, setUploadingImg] = useState(false)
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>('todas')
   const [notif, setNotif] = useState<{ tipo: 'ok' | 'error'; msg: string } | null>(null)
+  const [qrOpen, setQrOpen] = useState(false)
+  const [qrUrl, setQrUrl] = useState<string | null>(null)
+  const [qrError, setQrError] = useState<string | null>(null)
+  const [qrLoading, setQrLoading] = useState(false)
+  const [siteUrl, setSiteUrl] = useState<string | null>(null)
 
   const mostrarNotif = (tipo: 'ok' | 'error', msg: string) => {
     setNotif({ tipo, msg })
     setTimeout(() => setNotif(null), 4000)
+  }
+
+  const cargarQR = async () => {
+    setQrLoading(true)
+    setQrError(null)
+    try {
+      const res = await fetch('/api/platos/qr?size=512')
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Error al generar QR')
+      }
+      const blob = await res.blob()
+      if (qrUrl) URL.revokeObjectURL(qrUrl)
+      setQrUrl(URL.createObjectURL(blob))
+
+      // Obtener URL del sitio para mostrarla
+      const sitiosRes = await fetch('/api/sitios')
+      const sitiosData = await sitiosRes.json()
+      const restaurante = sitiosData.sitios?.find((s: any) => s.plan === 'restaurante')
+      if (restaurante?.deployUrl) setSiteUrl(restaurante.deployUrl)
+    } catch (e: any) {
+      setQrError(e.message)
+    } finally {
+      setQrLoading(false)
+    }
+  }
+
+  const descargarQR = async () => {
+    try {
+      const res = await fetch('/api/platos/qr?size=1024')
+      if (!res.ok) throw new Error('Error al descargar')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'qr-carta-restaurante.png'
+      a.click()
+      URL.revokeObjectURL(url)
+      mostrarNotif('ok', 'QR descargado en alta resolución')
+    } catch {
+      mostrarNotif('error', 'Error al descargar el QR')
+    }
   }
 
   const cargarPlatos = useCallback(async () => {
@@ -277,6 +325,101 @@ export default function CartaPage() {
             </div>
           )
         })}
+      </div>
+
+      {/* QR de la carta */}
+      <div className="mb-6 rounded-2xl border border-orange-500/20 bg-gradient-to-r from-orange-500/5 to-red-500/5 overflow-hidden">
+        <button
+          onClick={() => {
+            const opening = !qrOpen
+            setQrOpen(opening)
+            if (opening && !qrUrl && !qrLoading) cargarQR()
+          }}
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center">
+              <QrCode className="w-5 h-5 text-orange-400" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold text-white">QR de tu carta</p>
+              <p className="text-xs text-muted-foreground">Imprime este QR para que tus clientes vean el menú desde su celular</p>
+            </div>
+          </div>
+          {qrOpen
+            ? <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            : <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          }
+        </button>
+
+        {qrOpen && (
+          <div className="px-5 pb-5 border-t border-white/5 pt-5">
+            {qrLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-orange-400" />
+              </div>
+            ) : qrError ? (
+              <div className="flex flex-col items-center gap-3 py-6 text-center">
+                <AlertCircle className="w-8 h-8 text-orange-400/60" />
+                <p className="text-sm text-muted-foreground">{qrError}</p>
+                <button
+                  onClick={cargarQR}
+                  className="text-xs text-orange-400 hover:text-orange-300 underline"
+                >
+                  Reintentar
+                </button>
+              </div>
+            ) : qrUrl ? (
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                {/* QR Image */}
+                <div className="shrink-0 bg-white rounded-2xl p-3">
+                  <img src={qrUrl} alt="QR de la carta" className="w-48 h-48" />
+                </div>
+
+                {/* Info + actions */}
+                <div className="flex-1 space-y-4 text-center sm:text-left">
+                  <div>
+                    <p className="text-sm font-medium text-white mb-1">
+                      Escanea para ver tu menú digital
+                    </p>
+                    {siteUrl && (
+                      <a
+                        href={`${siteUrl}#menu`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs text-orange-400 hover:text-orange-300 transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        {siteUrl.replace('https://', '')}#menu
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={descargarQR}
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-orange-600 hover:bg-orange-500 text-white transition-colors"
+                    >
+                      <Download className="w-4 h-4" />
+                      Descargar QR (alta resolución)
+                    </button>
+                    <button
+                      onClick={cargarQR}
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-white/10 text-slate-300 hover:bg-white/5 transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Regenerar
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Ideal para imprimir en mesas, vitrinas o tarjetas. Resolución 1024px al descargar.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
 
       {/* Filtro por categoría */}
