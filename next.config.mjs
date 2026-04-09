@@ -9,6 +9,8 @@ const nextConfig = {
     ],
   },
   serverExternalPackages: ['bcryptjs', 'pg', 'nodemailer'],
+  // Railway asigna el puerto dinámicamente via $PORT
+  ...(process.env.PORT ? { env: { PORT: process.env.PORT } } : {}),
 }
 
 export default nextConfig
