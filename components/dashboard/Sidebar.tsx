@@ -29,15 +29,23 @@ interface SidebarProps {
     email?: string | null
     plan?: string
   }
+  open?: boolean
+  onClose?: () => void
 }
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, open, onClose }: SidebarProps) {
   const pathname = usePathname()
   const plan = (user as any)?.plan || 'basico'
   const badge = planBadges[plan as keyof typeof planBadges] ?? planBadges.basico
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-64 flex flex-col glass border-r border-white/5 z-40">
+    <aside className={cn(
+      'fixed left-0 top-0 bottom-0 w-64 flex flex-col glass border-r border-white/5 z-40 transition-transform duration-300',
+      // Mobile: oculto por defecto, visible cuando open=true
+      open ? 'translate-x-0' : '-translate-x-full',
+      // Desktop: siempre visible
+      'md:translate-x-0'
+    )}>
       {/* Logo */}
       <div className="p-5 border-b border-white/5">
         <Link href="/dashboard" className="flex items-center gap-2.5">

@@ -157,7 +157,7 @@ export function NuevoSitioClient({ isAdmin }: Props) {
       ) : (
         <>
           {/* Grid de planes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
             {PLANES_GRID.map((p) => {
               const Icon = p.icon
               const seleccionado = planSeleccionado === p.id
@@ -166,7 +166,7 @@ export function NuevoSitioClient({ isAdmin }: Props) {
                   key={p.id}
                   onClick={() => setPlanSeleccionado(p.id)}
                   className={
-                    `relative text-left w-full rounded-2xl border p-5 transition-all duration-200 ` +
+                    `relative text-left w-full rounded-2xl border p-4 transition-all duration-200 ` +
                     (seleccionado
                       ? `glass ring-2 ${p.ring} border-transparent`
                       : `glass border-white/10 hover:border-white/20`)
@@ -177,19 +177,24 @@ export function NuevoSitioClient({ isAdmin }: Props) {
                       Popular
                     </span>
                   )}
-                  <div className={`w-10 h-10 rounded-xl ${p.bg} border ${p.border} flex items-center justify-center mb-3`}>
-                    <Icon className={`w-5 h-5 ${p.color}`} />
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-9 h-9 rounded-xl ${p.bg} border ${p.border} flex items-center justify-center shrink-0`}>
+                      <Icon className={`w-4.5 h-4.5 ${p.color}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-base">{p.nombre}</span>
+                        {seleccionado && <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{p.descripcion}</p>
+                    </div>
+                    {/* Precio alineado a la derecha en la misma fila del nombre */}
+                    <p className={`text-lg font-black ${p.color} ml-auto shrink-0`}>{p.precio}</p>
                   </div>
-                  <div className="flex items-baseline gap-2 mb-0.5">
-                    <span className="font-black text-lg">{p.nombre}</span>
-                    {seleccionado && <CheckCircle2 className="w-4 h-4 text-green-400" />}
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3">{p.descripcion}</p>
-                  <p className={`text-2xl font-black ${p.color} mb-3`}>{p.precio}</p>
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-1">
                     {p.features.map((f) => (
                       <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                        <CheckCircle2 className="w-3 h-3 text-green-400 shrink-0" />
                         {f}
                       </li>
                     ))}
