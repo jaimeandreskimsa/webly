@@ -4,30 +4,6 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, AlertCircle, CreditCard, Zap, Shield, FlaskConical, CheckCircle2, Sparkles, Crown, Building2 } from 'lucide-react'
 
-const planNombres: Record<string, string> = {
-  basico: 'Básico',
-  pro: 'Pro',
-  premium: 'Premium',
-  broker: 'Broker',
-  demo: 'Demo (Admin)',
-}
-
-const planPrecios: Record<string, string> = {
-  basico: '$1.000',
-  pro: '$100.000',
-  premium: '$300.000',
-  broker: '$700.000',
-  demo: 'Gratis',
-}
-
-const planDescripciones: Record<string, string[]> = {
-  basico: ['1 sitio web', 'Dominio personalizado', 'Soporte por email'],
-  pro: ['3 sitios web', 'Dominio personalizado', 'Generación con IA', 'Soporte prioritario'],
-  premium: ['Sitios ilimitados', 'Dominio personalizado', 'Generación con IA avanzada', 'Soporte 24/7', 'Analíticas'],
-  broker: ['Todo Premium', 'Multi-cliente', 'White label', 'API access', 'Manager dedicado'],
-  demo: ['Plan Premium completo', 'Sin costo', 'Solo para administradores'],
-}
-
 const PLANES_GRID = [
   {
     id: 'basico',
@@ -81,11 +57,10 @@ const PLANES_GRID = [
 ]
 
 interface Props {
-  planPagado: string | null
   isAdmin: boolean
 }
 
-export function NuevoSitioClient({ planPagado, isAdmin }: Props) {
+export function NuevoSitioClient({ isAdmin }: Props) {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -148,56 +123,6 @@ export function NuevoSitioClient({ planPagado, isAdmin }: Props) {
         <a href="/dashboard" className="text-xs text-muted-foreground hover:text-white transition-colors">
           ← Volver al dashboard
         </a>
-      </div>
-    )
-  }
-
-  // ── Usuario ya tiene plan pagado: crear sitio sin pago ────────────────────
-  if (planPagado) {
-    const planNombre = planNombres[planPagado] || planPagado
-    const features = planDescripciones[planPagado] || []
-
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] py-12">
-        <div className="w-full max-w-md">
-          <div className="flex justify-center mb-6">
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-semibold">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Plan {planNombre} activo · Sin costo adicional
-            </span>
-          </div>
-
-          <div className="glass border border-white/10 rounded-2xl p-8 text-center">
-            <h1 className="text-3xl font-black mb-1">Crear nuevo sitio</h1>
-            <p className="text-muted-foreground text-sm mt-2 mb-6">
-              Ya tienes el plan <span className="text-white font-semibold">{planNombre}</span> activo.
-              Puedes crear otro sitio sin costo adicional.
-            </p>
-
-            <ul className="space-y-2.5 mb-8 text-left">
-              {features.map((f) => (
-                <li key={f} className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                  <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-
-            <button
-              onClick={iniciarPago}
-              className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl btn-gradient text-white font-bold text-base hover:scale-[1.02] transition-transform"
-            >
-              <Sparkles className="w-5 h-5" />
-              Crear sitio con plan {planNombre}
-            </button>
-          </div>
-
-          <div className="text-center mt-5">
-            <a href="/dashboard" className="text-xs text-muted-foreground hover:text-white transition-colors">
-              ← Volver al dashboard
-            </a>
-          </div>
-        </div>
       </div>
     )
   }

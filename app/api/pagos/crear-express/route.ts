@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { db, pagos, sitios } from '@/lib/db'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { crearPagoFlow, getFlowCredentials, getFlowBaseUrl } from '@/lib/flow'
 import { PLAN_PRECIOS, PLAN_NOMBRES } from '@/lib/utils'
 import { getPrecioPlan } from '@/lib/planes'
@@ -45,32 +45,6 @@ export async function POST(req: NextRequest) {
 
     if (!plan || !['basico', 'pro', 'premium', 'broker'].includes(plan)) {
       return NextResponse.json({ error: 'Plan inválido' }, { status: 400 })
-    }
-
-    // ── Si el usuario ya tiene un pago aprobado, crear sitio gratis ──────────
-    const [pagoAprobado] = await db
-      .select()
-      .from(pagos)
-      .where(and(eq(pagos.userId, userId), eq(pagos.estado, 'aprobado')))
-      .orderBy(desc(pagos.createdAt))
-      .limit(1)
-
-    if (pagoAprobado) {
-      const planDelPago = pagoAprobado.plan as string
-      const slug = `sitio-${planDelPago}-${Date.now().toString(36)}`
-      const [nuevoSitio] = await db.insert(sitios).values({
-        userId,
-        nombre: `Mi sitio ${planDelPago}`,
-        slug,
-        plan: planDelPago as any,
-        estado: 'borrador',
-        contenidoJson: null,
-      }).returning()
-      return NextResponse.json({
-        checkoutUrl: `${appUrl}/dashboard/sitios/${nuevoSitio.id}/configurar`,
-        sitioId: nuevoSitio.id,
-        sinPago: true,
-      })
     }
 
     const slug = `sitio-${plan}-${Date.now().toString(36)}`
