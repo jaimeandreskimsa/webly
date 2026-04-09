@@ -17,12 +17,16 @@ export function AdminSitioActions({ sitioId, estado }: AdminSitioActionsProps) {
   async function regenerar() {
     setLoading(true)
     setOpen(false)
-    await fetch('/api/admin/sitios', {
+    const res = await fetch('/api/admin/sitios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sitioId, accion: 'regenerar' }),
     })
     setLoading(false)
+    if (res.ok) {
+      // Abrir en nueva pestaña para ver el progreso en tiempo real
+      window.open(`/dashboard/sitios/${sitioId}/generando`, '_blank')
+    }
     router.refresh()
   }
 

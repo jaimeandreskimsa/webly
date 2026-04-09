@@ -45,11 +45,12 @@ export function SitioActions({ sitio }: SitioActionsProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sitioId: sitio.id }),
       })
-      if (!res.ok) throw new Error('Error al regenerar')
-      router.refresh()
-    } catch (err) {
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Error al regenerar')
+      // Navegar a la página de progreso — la generación ya corre en background
+      router.push(`/dashboard/sitios/${sitio.id}/generando`)
+    } catch (err: any) {
       console.error(err)
-    } finally {
       setRegenerando(false)
     }
   }
