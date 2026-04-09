@@ -4,6 +4,7 @@ import { db, pagos, sitios, usuarios } from '@/lib/db'
 import { eq, and, desc } from 'drizzle-orm'
 import { crearPagoFlow, getFlowCredentials, getFlowBaseUrl, obtenerEstadoPago } from '@/lib/flow'
 import { PLAN_PRECIOS, PLAN_NOMBRES } from '@/lib/utils'
+import { getPrecioPlan } from '@/lib/planes'
 
 // Retoma el pago de un sitio que quedó en estado pendiente_pago
 export async function POST(req: NextRequest) {
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
     }
 
     const plan = sitio.plan as string
-    const monto = PLAN_PRECIOS[plan as keyof typeof PLAN_PRECIOS]
+    const monto = await getPrecioPlan(plan)
     const planNombre = PLAN_NOMBRES[plan as keyof typeof PLAN_NOMBRES]
     const shortSitio = sitio.id.replace(/-/g, '').slice(0, 10)
     const shortUser  = userId.replace(/-/g, '').slice(0, 8)

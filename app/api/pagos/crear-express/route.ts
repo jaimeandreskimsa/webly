@@ -4,6 +4,7 @@ import { db, pagos, sitios } from '@/lib/db'
 import { eq, and, desc } from 'drizzle-orm'
 import { crearPagoFlow, getFlowCredentials, getFlowBaseUrl } from '@/lib/flow'
 import { PLAN_PRECIOS, PLAN_NOMBRES } from '@/lib/utils'
+import { getPrecioPlan } from '@/lib/planes'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    if (!plan || !['prueba', 'basico', 'pro', 'premium', 'broker'].includes(plan)) {
+    if (!plan || !['basico', 'pro', 'premium', 'broker'].includes(plan)) {
       return NextResponse.json({ error: 'Plan inválido' }, { status: 400 })
     }
 
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Paso 2: Llamar a Flow ─────────────────────────────────────────────────
-    const monto = PLAN_PRECIOS[plan as keyof typeof PLAN_PRECIOS]
+    const monto = await getPrecioPlan(plan)
     const planNombre = PLAN_NOMBRES[plan as keyof typeof PLAN_NOMBRES]
     const shortSitio = nuevoSitio.id.replace(/-/g, '').slice(0, 10)
     const shortUser  = userId.replace(/-/g, '').slice(0, 8)

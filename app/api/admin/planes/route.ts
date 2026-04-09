@@ -22,7 +22,7 @@ const DEFAULTS: PlanConfig[] = [
   {
     id: 'basico',
     nombre: 'Básico',
-    precio: PLAN_PRECIOS.basico,
+    precio: 1000,
     descripcion: 'Ideal para emprendedores que recién comienzan',
     badge: null,
     activo: true,

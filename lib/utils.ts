@@ -39,8 +39,8 @@ export function truncate(str: string, maxLength: number): string {
 export type PlanId = 'prueba' | 'basico' | 'pro' | 'premium' | 'broker'
 
 export const PLAN_PRECIOS = {
-  prueba: 1000,
-  basico: 50000,
+  prueba: 1000,   // mantenido por compatibilidad con registros existentes en DB
+  basico: 1000,
   pro: 100000,
   premium: 300000,
   broker: 700000,

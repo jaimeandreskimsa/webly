@@ -5,23 +5,6 @@ import { formatCLP, PLAN_PRECIOS } from '@/lib/utils'
 import type { DatosWizard } from '../WizardCreacion'
 
 const planDetalles = {
-  prueba: {
-    icon: Zap,
-    color: 'text-pink-400',
-    bg: 'bg-pink-500/10 border-pink-500/30',
-    gradient: 'from-pink-500/20 to-rose-500/20',
-    label: 'Prueba',
-    descripcion: 'Prueba la plataforma por solo $1.000 CLP',
-    features: [
-      '1 Landing page con IA',
-      '4-6 secciones optimizadas',
-      'Imágenes de stock con IA',
-      'Formulario de contacto',
-      'SEO básico incluido',
-      'Descarga ZIP',
-      'Animaciones incluidas',
-    ],
-  },
   basico: {
     icon: Globe,
     color: 'text-blue-400',
@@ -98,7 +81,7 @@ interface Props {
 
 export function StepResumenPago({ datos }: Props) {
   const plan = datos.plan
-  const detalle = planDetalles[plan]
+  const detalle = planDetalles[plan as keyof typeof planDetalles] ?? planDetalles.basico
   const PlanIcon = detalle.icon
   const precio = PLAN_PRECIOS[plan]
 
