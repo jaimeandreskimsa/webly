@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { db, pagos, sitios } from '@/lib/db'
-import { eq, and } from 'drizzle-orm'
-import { crearPagoFlow, getFlowCredentials, getFlowBaseUrl } from '@/lib/flow'
+import { db, pagos, sitios, usuarios } from '@/lib/db'
+import { eq, and, desc } from 'drizzle-orm'
+import { crearPagoFlow, getFlowCredentials, getFlowBaseUrl, obtenerEstadoPago } from '@/lib/flow'
 import { PLAN_PRECIOS, PLAN_NOMBRES } from '@/lib/utils'
 
 // Retoma el pago de un sitio que quedó en estado pendiente_pago
@@ -13,6 +13,11 @@ export async function POST(req: NextRequest) {
   }
 
   const userId = session.user.id as string
+
+  // Detectar URL base real del servidor
+  const host = req.headers.get('host') || 'localhost:3000'
+  const proto = req.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https')
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`
 
   try {
     const { sitioId } = await req.json()
@@ -35,18 +40,56 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El sitio no está pendiente de pago' }, { status: 400 })
     }
 
-    // Obtener credenciales Flow
-    const [credentials, flowBaseUrl] = await Promise.all([
-      getFlowCredentials(),
-      getFlowBaseUrl(),
-    ])
+    // ── Primero verificar si el pago ya fue procesado por Flow ──────────────
+    // (puede ocurrir si el webhook falló o NEXT_PUBLIC_APP_URL estaba mal)
+    const { apiKey, secretKey } = await getFlowCredentials()
 
-    if (!credentials.apiKey || !credentials.secretKey) {
+    if (apiKey && secretKey) {
+      const pagosDelSitio = await db
+        .select()
+        .from(pagos)
+        .where(eq(pagos.userId, userId))
+        .orderBy(desc(pagos.createdAt))
+
+      const pagoDelSitio = pagosDelSitio
+        .filter(p => p.flowOrder?.startsWith(sitioId))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+
+      if (pagoDelSitio?.flowToken) {
+        try {
+          const estadoFlow = await obtenerEstadoPago({ apiKey, secretKey, token: pagoDelSitio.flowToken })
+
+          if (estadoFlow.status === 1) {
+            // ¡El pago ya estaba hecho! Actualizar BD y redirigir al wizard
+            const plan = sitio.plan as string
+            await Promise.all([
+              db.update(pagos)
+                .set({ estado: 'aprobado', updatedAt: new Date() })
+                .where(eq(pagos.id, pagoDelSitio.id)),
+              db.update(sitios)
+                .set({ estado: 'borrador', plan: plan as any, updatedAt: new Date() })
+                .where(eq(sitios.id, sitioId)),
+              db.update(usuarios)
+                .set({ plan: plan as any, updatedAt: new Date() })
+                .where(eq(usuarios.id, userId)),
+            ])
+            return NextResponse.json({
+              configurarUrl: `${appUrl}/dashboard/sitios/${sitioId}/configurar`,
+              yaAprobado: true,
+            })
+          }
+        } catch (err) {
+          console.warn('[pagos/reanudar] No se pudo consultar Flow, creando nuevo pago:', err)
+        }
+      }
+    }
+
+    // ── No está pagado: crear nuevo link de pago ──────────────────────────────
+    if (!apiKey || !secretKey) {
       throw new Error('Flow no configurado. Agrega FLOW_API_KEY y FLOW_SECRET_KEY.')
     }
 
     const plan = sitio.plan as string
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const monto = PLAN_PRECIOS[plan as keyof typeof PLAN_PRECIOS]
     const planNombre = PLAN_NOMBRES[plan as keyof typeof PLAN_NOMBRES]
     const shortSitio = sitio.id.replace(/-/g, '').slice(0, 10)
@@ -56,8 +99,8 @@ export async function POST(req: NextRequest) {
     const MERCHANT_EMAIL = process.env.FLOW_MERCHANT_EMAIL || 'hola@weblynow.com'
 
     const flowParams = {
-      apiKey: credentials.apiKey,
-      secretKey: credentials.secretKey,
+      apiKey,
+      secretKey,
       commerceOrder,
       subject: `WeblyNow — Plan ${planNombre}`,
       amount: monto,

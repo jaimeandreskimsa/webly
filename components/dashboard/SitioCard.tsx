@@ -141,7 +141,8 @@ export function SitioCard({ sitio }: SitioCardProps) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al reanudar pago')
-      window.location.href = data.checkoutUrl
+      // Si el pago ya estaba aprobado en Flow, ir directo al wizard
+      window.location.href = data.configurarUrl || data.checkoutUrl
     } catch (err: any) {
       console.error('[reanudar pago]', err)
       setReanudando(false)
