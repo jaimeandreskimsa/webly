@@ -647,6 +647,7 @@ export default function ConfiguracionAdminPage({ defaultPrompts }: { defaultProm
                 { plan: 'pro', label: '🔵 Plan Pro', desc: '3 sitios, animaciones avanzadas, ediciones ilimitadas', default: '69900' },
                 { plan: 'premium', label: '⭐ Plan Premium', desc: 'Sitios ilimitados, efectos premium, dominio personalizado', default: '149900' },
                 { plan: 'broker', label: '🏢 Plan Broker', desc: 'Portal inmobiliario, gestión de propiedades, deploy automático', default: '700000' },
+                { plan: 'restaurante', label: '🍽️ Plan Restaurante', desc: 'Menú digital interactivo, carta editable, deploy automático', default: '500000' },
               ] as const).map(({ plan, label, desc, default: d }) => (
                 <div key={plan} className="flex items-center gap-4">
                   <div className="flex-1">
@@ -677,6 +678,7 @@ export default function ConfiguracionAdminPage({ defaultPrompts }: { defaultProm
                   { clave: 'precio_pro', valor: val('precio_pro', '69900'), tipo: 'number' },
                   { clave: 'precio_premium', valor: val('precio_premium', '149900'), tipo: 'number' },
                   { clave: 'precio_broker', valor: val('precio_broker', '700000'), tipo: 'number' },
+                  { clave: 'precio_restaurante', valor: val('precio_restaurante', '500000'), tipo: 'number' },
                 ], 'precios')}
               />
             </div>
