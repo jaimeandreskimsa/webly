@@ -21,9 +21,8 @@ export async function POST(req: NextRequest) {
     .from(pagos)
     .where(eq(pagos.userId, session.user.id as string))
 
-  const shortId = sitioId.replace(/-/g, '').slice(0, 10)
   const pago = todosPagos
-    .filter(p => p.flowOrder?.startsWith(shortId))
+    .filter(p => p.flowOrder?.startsWith(sitioId + '|'))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
 
   if (!pago) return NextResponse.json({ aprobado: false, error: 'Pago no encontrado' })

@@ -29,10 +29,13 @@ export default function EsperandoPagoPage() {
   }
 
   useEffect(() => {
-    // Poll cada 3s consultando Flow directamente
+    // Poll cada 3s, máximo 20 intentos (60 segundos)
     const interval = setInterval(async () => {
-      setIntentos(p => p + 1)
-      await verificarPago()
+      setIntentos(prev => {
+        if (prev >= 20) { clearInterval(interval); return prev }
+        return prev + 1
+      })
+      if (intentos < 20) await verificarPago()
     }, 3000)
 
     return () => clearInterval(interval)

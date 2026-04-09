@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     const shortSitio = nuevoSitio.id.replace(/-/g, '').slice(0, 10)
     const shortUser  = userId.replace(/-/g, '').slice(0, 8)
     const commerceOrder = `${shortSitio}${shortUser}${plan}en`.slice(0, 45)
-    const urlReturn = `${appUrl}/dashboard/sitios/${nuevoSitio.id}/configurar`
+    const urlReturn = `${appUrl}/pago-exitoso/${nuevoSitio.id}`
     const MERCHANT_EMAIL = process.env.FLOW_MERCHANT_EMAIL || 'hola@weblynow.com'
 
     const flowParams = {

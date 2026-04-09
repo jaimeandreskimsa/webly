@@ -37,9 +37,8 @@ export default async function ConfigurarSitioPage({ params, searchParams }: Prop
       .from(pagos)
       .where(eq(pagos.userId, session.user.id as string))
 
-    const shortId = id.replace(/-/g, '').slice(0, 10)
     const pagoDelSitio = pagosSitio
-      .filter(p => p.flowOrder?.startsWith(shortId))
+      .filter(p => p.flowOrder?.startsWith(id + '|'))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
 
     // Si ya está aprobado en DB, continuar
