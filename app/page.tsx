@@ -109,6 +109,30 @@ const planes = [
     cta: 'Crear mi portal Broker',
     ctaColor: 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500',
   },
+  {
+    id: 'restaurante',
+    nombre: 'Restaurante',
+    precio: '500.000',
+    descripcion: 'Menú digital para restaurantes y cafeterías',
+    color: 'from-orange-500/20 to-red-500/20',
+    border: 'border-orange-500/30',
+    badge: 'GASTRONOMÍA',
+    features: [
+      'Sitio SPA de 4 páginas',
+      'Menú digital interactivo',
+      'Filtros por categoría',
+      'Carta editable desde el dashboard',
+      'WhatsApp flotante',
+      'Deploy automático en Vercel',
+      'SEO: schema Restaurant',
+      'Hasta 20 imágenes IA incluidas',
+      '5 ediciones incluidas',
+      'Publicación de carta con 1 click',
+    ],
+    limitaciones: [],
+    cta: 'Crear mi menú digital',
+    ctaColor: 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500',
+  },
 ]
 
 const pasos = [
@@ -670,7 +694,7 @@ const faqData = [
   },
   {
     pregunta: '¿Cuánto cuesta?',
-    respuesta: 'Tenemos 4 planes: Básico ($50.000), Pro ($100.000), Premium ($300.000) y Broker ($700.000). Es un pago único, sin mensualidades obligatorias. El precio incluye la generación del sitio y las ediciones del plan.',
+    respuesta: 'Tenemos 5 planes: Básico ($1.000), Pro ($100.000), Premium ($300.000), Broker ($700.000) y Restaurante ($500.000). Es un pago único, sin mensualidades obligatorias. El precio incluye la generación del sitio y las ediciones del plan.',
   },
   {
     pregunta: '¿Puedo editar mi sitio después?',

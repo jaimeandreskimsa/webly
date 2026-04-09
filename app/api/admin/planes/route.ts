@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm'
 import { PLAN_PRECIOS } from '@/lib/utils'
 
 export interface PlanConfig {
-  id: 'basico' | 'pro' | 'premium' | 'broker'
+  id: 'basico' | 'pro' | 'premium' | 'broker' | 'restaurante'
   nombre: string
   precio: number
   descripcion: string
@@ -99,6 +99,27 @@ const DEFAULTS: PlanConfig[] = [
       'SEO: schema RealEstateAgent',
       'Hasta 10 imágenes IA incluidas',
       'Ediciones ilimitadas',
+    ],
+    limitaciones: [],
+  },
+  {
+    id: 'restaurante',
+    nombre: 'Restaurante',
+    precio: PLAN_PRECIOS.restaurante,
+    descripcion: 'Menú digital para restaurantes y cafeterías',
+    badge: 'GASTRONOMÍA',
+    activo: true,
+    features: [
+      'Sitio SPA de 4 páginas',
+      'Menú digital interactivo',
+      'Filtros por categoría',
+      'Carta editable desde dashboard',
+      'WhatsApp flotante',
+      'Deploy automático en Vercel',
+      'SEO: schema Restaurant',
+      'Hasta 20 imágenes IA',
+      '5 ediciones incluidas',
+      'Publicación de carta con 1 click',
     ],
     limitaciones: [],
   },

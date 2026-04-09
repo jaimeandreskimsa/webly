@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, AlertCircle, CreditCard, Zap, Shield, FlaskConical, CheckCircle2, Sparkles, Crown, Building2 } from 'lucide-react'
+import { Loader2, AlertCircle, CreditCard, Zap, Shield, FlaskConical, CheckCircle2, Sparkles, Crown, Building2, UtensilsCrossed } from 'lucide-react'
 
 const PLANES_GRID = [
   {
@@ -46,13 +46,25 @@ const PLANES_GRID = [
     id: 'broker',
     nombre: 'Broker',
     precio: '$700.000',
-    descripcion: 'Para agencias',
+    descripcion: 'Para inmobiliarias',
     icon: Building2,
-    color: 'text-amber-400',
-    border: 'border-amber-500/40',
-    bg: 'bg-amber-500/10',
-    ring: 'ring-amber-500',
-    features: ['Todo Premium', 'Multi-cliente', 'White label', 'API access'],
+    color: 'text-emerald-400',
+    border: 'border-emerald-500/40',
+    bg: 'bg-emerald-500/10',
+    ring: 'ring-emerald-500',
+    features: ['Portal inmobiliario', 'Gestión de propiedades', 'Filtros avanzados', 'Ediciones ilimitadas'],
+  },
+  {
+    id: 'restaurante',
+    nombre: 'Restaurante',
+    precio: '$500.000',
+    descripcion: 'Menú digital interactivo',
+    icon: UtensilsCrossed,
+    color: 'text-orange-400',
+    border: 'border-orange-500/40',
+    bg: 'bg-orange-500/10',
+    ring: 'ring-orange-500',
+    features: ['Menú digital filtrable', 'Carta editable', 'Publicación con 1 click', 'WhatsApp flotante'],
   },
 ]
 
