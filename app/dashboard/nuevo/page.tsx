@@ -2,20 +2,14 @@ import { auth } from '@/auth'
 import { db, pagos } from '@/lib/db'
 import { eq, and, desc } from 'drizzle-orm'
 import { Suspense } from 'react'
-import { WizardCreacion } from '@/components/wizard/WizardCreacion'
+import { NuevoSitioClient } from './NuevoSitioClient'
 
-export default async function NuevoPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ plan?: string }>
-}) {
+export default async function NuevoPage() {
   const session = await auth()
   const userId = session?.user?.id as string
   const isAdmin = (session?.user as any)?.rol === 'admin'
 
-  const params = await searchParams
-
-  // Verificar si el usuario ya tiene un pago aprobado
+  // Verificar si el usuario ya tiene un pago aprobado (puede crear sin pagar)
   const [pagoAprobado] = await db
     .select({ plan: pagos.plan })
     .from(pagos)
@@ -24,15 +18,11 @@ export default async function NuevoPage({
     .limit(1)
 
   const planPagado = pagoAprobado?.plan ?? null
-  // Si tiene plan pagado, usar ese; sino, usar el del query param; sino 'pro'
-  const planInicial = planPagado || params.plan || 'pro'
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <Suspense>
-        <WizardCreacion
-          planInicial={planInicial}
-          userId={userId}
+        <NuevoSitioClient
           planPagado={planPagado}
           isAdmin={isAdmin}
         />

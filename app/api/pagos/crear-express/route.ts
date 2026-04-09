@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    if (!plan || !['basico', 'pro', 'premium', 'broker'].includes(plan)) {
+    if (!plan || !['prueba', 'basico', 'pro', 'premium', 'broker'].includes(plan)) {
       return NextResponse.json({ error: 'Plan inválido' }, { status: 400 })
     }
 

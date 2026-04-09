@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, AlertCircle, CreditCard, Zap, Shield, FlaskConical, CheckCircle2, Sparkles } from 'lucide-react'
 
 const planNombres: Record<string, string> = {
+  prueba: 'Prueba',
   basico: 'Básico',
   pro: 'Pro',
   premium: 'Premium',
@@ -13,6 +14,7 @@ const planNombres: Record<string, string> = {
 }
 
 const planPrecios: Record<string, string> = {
+  prueba: '$1.000',
   basico: '$50.000',
   pro: '$100.000',
   premium: '$300.000',
@@ -21,6 +23,7 @@ const planPrecios: Record<string, string> = {
 }
 
 const planDescripciones: Record<string, string[]> = {
+  prueba: ['1 sitio web de prueba', 'Generación con IA', 'Ideal para probar la plataforma'],
   basico: ['1 sitio web', 'Dominio personalizado', 'Soporte por email'],
   pro: ['3 sitios web', 'Dominio personalizado', 'Generación con IA', 'Soporte prioritario'],
   premium: ['Sitios ilimitados', 'Dominio personalizado', 'Generación con IA avanzada', 'Soporte 24/7', 'Analíticas'],
