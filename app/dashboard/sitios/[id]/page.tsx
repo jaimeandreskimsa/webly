@@ -113,14 +113,20 @@ export default async function SitioPage({
           {!versionActual && sitio.estado !== 'generando' && (
             <div className="glass rounded-2xl border border-white/5 p-12 text-center">
               <Code2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-semibold mb-2">Sitio pendiente de generación</h3>
+              <h3 className="font-semibold mb-2">
+                {!contenido.rubro
+                  ? 'Completa el wizard para crear tu sitio'
+                  : 'Sitio pendiente de generación'}
+              </h3>
               <p className="text-muted-foreground text-sm mb-6">
                 {sitio.estado === 'pendiente_pago'
                   ? 'Completa el pago para que Claude genere tu sitio.'
+                  : !contenido.rubro
+                  ? 'Tu pago fue confirmado. Solo falta que nos cuentes sobre tu negocio.'
                   : 'Tu sitio aún no ha sido generado.'}
               </p>
               {sitio.estado !== 'pendiente_pago' && (
-                <GenerarButton sitioId={sitio.id} />
+                <GenerarButton sitioId={sitio.id} sinConfigurar={!contenido.rubro} />
               )}
             </div>
           )}
@@ -265,14 +271,17 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function GenerarButton({ sitioId }: { sitioId: string }) {
+function GenerarButton({ sitioId, sinConfigurar }: { sitioId: string; sinConfigurar?: boolean }) {
   return (
     <a
-      href={`/dashboard/sitios/${sitioId}/generando`}
+      href={sinConfigurar
+        ? `/dashboard/sitios/${sitioId}/configurar`
+        : `/dashboard/sitios/${sitioId}/generando`
+      }
       className="inline-flex items-center gap-2 btn-gradient text-white font-semibold px-6 py-3 rounded-xl text-sm"
     >
       <Rocket className="w-4 h-4" />
-      Generar mi sitio ahora
+      {sinConfigurar ? 'Crear mi sitio →' : 'Generar mi sitio ahora'}
     </a>
   )
 }

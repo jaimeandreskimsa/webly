@@ -259,8 +259,20 @@ export function SitioCard({ sitio }: SitioCardProps) {
           </span>
 
           <div className="flex items-center gap-1">
-            {/* Previsualizar — lleva a la página de detalle del sitio */}
-            {(sitio.estado === 'borrador' || sitio.estado === 'publicado') && (
+            {/* Borrador sin contenido = wizard incompleto → botón principal al configurar */}
+            {sitio.estado === 'borrador' && !contenido.rubro && (
+              <Link
+                href={`/dashboard/sitios/${sitio.id}/configurar`}
+                onClick={e => e.stopPropagation()}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-500/15 hover:bg-violet-500/25 text-violet-400 hover:text-violet-300 transition-all text-xs font-semibold"
+              >
+                <Rocket className="w-3.5 h-3.5" />
+                Crear sitio →
+              </Link>
+            )}
+
+            {/* Previsualizar — solo si ya tiene contenido generado */}
+            {(sitio.estado === 'borrador' || sitio.estado === 'publicado') && contenido.rubro && (
               <Link
                 href={`/dashboard/sitios/${sitio.id}`}
                 onClick={e => e.stopPropagation()}
