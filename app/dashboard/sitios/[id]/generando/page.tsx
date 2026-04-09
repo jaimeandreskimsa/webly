@@ -41,6 +41,7 @@ function GenerandoContent() {
   const [promptText, setPromptText] = useState('')
   const [showPrompt, setShowPrompt] = useState(false)
   const [modeloInfo, setModeloInfo] = useState('claude-sonnet-4-6')
+  const [reintentoInfo, setReintentoInfo] = useState<{ intento: number; max: number } | null>(null)
   const charsRef = useRef(0)
   const completedRef = useRef(false)
   const planRef = useRef<string>('pro')
@@ -185,6 +186,15 @@ function GenerandoContent() {
           setTimeout(() => router.push(`/dashboard/sitios/${sitioId}`), 2000)
         }
 
+        if (data.reintento) {
+          // Claude falló, se está reintentando automáticamente
+          setReintentoInfo({ intento: data.reintento, max: data.max })
+          charsRef.current = 0
+          lastChunkTimeRef.current = Date.now()
+          setHtmlOutput('')
+          setProgreso(2) // resetear barra para el nuevo intento
+        }
+
         if (data.error) {
           completedRef.current = true
           setErrorMsg(data.error)
@@ -250,6 +260,14 @@ function GenerandoContent() {
             <p className="text-muted-foreground mb-10">
               La IA está trabajando en tu sitio. Esto puede tomar entre 1 y 3 minutos.
             </p>
+
+            {/* Banner de reintento automático */}
+            {reintentoInfo && (
+              <div className="mb-4 flex items-center justify-center gap-2 text-sm px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Reintentando automáticamente ({reintentoInfo.intento}/{reintentoInfo.max})...
+              </div>
+            )}
 
             {/* Progress bar */}
             <div className="glass rounded-2xl border border-white/5 p-6 mb-6">

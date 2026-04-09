@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db, pagos, sitios, usuarios } from '@/lib/db'
 import { eq } from 'drizzle-orm'
 import { obtenerEstadoPago, getFlowCredentials } from '@/lib/flow'
+import { generarEnBackground } from '@/lib/generar'
+import type { DatosWizard } from '@/components/wizard/WizardCreacion'
 
 // Flow.cl envía un POST con el token cuando el pago es procesado
 // Documentación: https://developers.flow.cl/api#payment/getStatus
@@ -116,14 +118,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // Nuevo sitio: marcar como 'generando' — el frontend abrirá SSE a GET /api/generar
-    // que detectará el estado y arrancará la generación con Claude en background.
+    // Nuevo sitio: marcar como 'generando' y disparar generación en el servidor.
+    // La generación corre en el proceso Node.js de Railway — NO depende de que el
+    // cliente abra /generando. Si lo abre, se suscribe al SSE ya en marcha.
     await db
       .update(sitios)
       .set({ estado: 'generando', updatedAt: new Date() })
       .where(eq(sitios.id, sitioId))
 
-    console.log(`[webhook-flow] Pago aprobado, sitio ${sitioId} listo para generar`)
+    // Leer contenidoJson para poder lanzar la generación directamente
+    const [sitioConDatos] = await db
+      .select({ contenidoJson: sitios.contenidoJson })
+      .from(sitios)
+      .where(eq(sitios.id, sitioId))
+      .limit(1)
+
+    const datos = sitioConDatos?.contenidoJson as unknown as DatosWizard | undefined
+    if (datos?.plan && datos?.nombreEmpresa) {
+      generarEnBackground(sitioId, datos) // fire-and-forget — no await
+      console.log(`[webhook-flow] 🚀 Generación disparada para sitio ${sitioId} (plan: ${datos.plan})`)
+    } else {
+      console.warn(`[webhook-flow] ⚠️ Sitio ${sitioId} sin contenidoJson — generación diferida al cliente`)
+    }
+
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('[webhook-flow] Error:', error)
