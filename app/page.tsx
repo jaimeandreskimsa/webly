@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import {
-  Zap, Globe, Sparkles, Shield, ArrowRight, Check,
+  Zap, Globe, Sparkles, Shield, ArrowRight,
   Star, Rocket, Code2, Palette, BarChart3, MessageSquare,
   ChevronRight, Building2, ExternalLink
 } from 'lucide-react'
 import { getPlanesConfig } from '@/lib/planes'
+import PlanesSlider from '@/components/PlanesSlider'
 
 // ─── Pricing Data ─────────────────────────────────────────────────────────────
 
@@ -372,62 +373,7 @@ async function Planes() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-6 items-stretch">
-          {planesConPrecios.map((plan) => (
-            <div
-              key={plan.id}
-              className={`relative rounded-2xl border ${plan.border} bg-gradient-to-b ${plan.color} p-8 flex flex-col ${
-                plan.badge === 'MÁS POPULAR' ? 'scale-105 glow-purple' : ''
-              }`}
-            >
-              {plan.badge && (
-                <div className={`absolute -top-3 left-1/2 -translate-x-1/2 text-white text-xs font-bold px-4 py-1.5 rounded-full ${
-                  plan.id === 'broker'
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600'
-                    : plan.id === 'premium'
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500'
-                    : plan.id === 'restaurante'
-                    ? 'bg-gradient-to-r from-orange-500 to-red-600'
-                    : 'bg-gradient-to-r from-violet-500 to-purple-600'
-                }`}>
-                  {plan.badge}
-                </div>
-              )}
-
-              <div className="mb-6">
-                <h3 className="text-xl font-bold mb-1">{plan.nombre}</h3>
-                <p className="text-muted-foreground text-sm mb-4">{plan.descripcion}</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-muted-foreground text-sm">CLP$</span>
-                  <span className="text-4xl font-black">{plan.precio}</span>
-                </div>
-                <p className="text-muted-foreground text-xs mt-1">Pago único · sin mensualidad</p>
-              </div>
-
-              <ul className="space-y-3 mb-8 flex-1">
-                {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <Check className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-                {plan.limitaciones.map((limit, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground line-through">
-                    <span className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0 text-center">✕</span>
-                    <span>{limit}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href={`/registro?plan=${plan.id}`}
-                className={`w-full text-center py-3 px-6 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-[1.02] ${plan.ctaColor}`}
-              >
-                {plan.cta}
-              </Link>
-            </div>
-          ))}
-        </div>
+        <PlanesSlider planes={planesConPrecios} />
 
         {/* Subscription upsell */}
         <div className="mt-10 glass rounded-2xl p-6 border border-indigo-500/20 max-w-2xl mx-auto text-center">
