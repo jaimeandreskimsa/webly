@@ -102,8 +102,10 @@ export async function POST(req: NextRequest) {
 
     const checkoutUrl = `${result.url}?token=${result.token}`
 
-    // ── Paso 3: Registrar pago — fire-and-forget (no bloquea la respuesta) ───
-    db.insert(pagos).values({
+    // ── Paso 3: Registrar pago — awaited para evitar race condition ──────────
+    // Si esto fuera fire-and-forget, el usuario vuelve de Flow antes de que
+    // la fila exista en DB y verificar-pago-exitoso no la encuentra.
+    await db.insert(pagos).values({
       userId,
       flowToken: result.token,
       flowOrder: `${nuevoSitio.id}|${userId}|${plan}|en`,
@@ -111,7 +113,7 @@ export async function POST(req: NextRequest) {
       monto,
       estado: 'pendiente',
       metadata: { sitioId: nuevoSitio.id, userId, plan, tipo: 'en' },
-    }).catch(err => console.error('[pagos/crear-express] pagos insert error:', err))
+    })
 
     return NextResponse.json({ checkoutUrl, sitioId: nuevoSitio.id })
   } catch (error: any) {

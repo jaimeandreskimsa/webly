@@ -1,18 +1,22 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState, useRef } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 
 /**
  * Landing público después del redirect de Flow.
- * Renderiza inmediatamente (spinner) y verifica el pago vía API client-side.
- * No bloquea el browser con llamadas Server-side antes de enviar HTML.
+ * Flow redirige a: /pago-exitoso/{sitioId}?token=FLOW_TOKEN
+ * Leemos ese token y lo usamos para verificar el pago directamente con Flow
+ * sin depender del insert async a la DB (que puede tener race condition).
  */
-export default function PagoExitosoPage() {
+function PagoExitosoContent() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const sitioId = params.id as string
+  // ⬇️ CRÍTICO: Flow incluye el token en la URL de retorno (?token=XXXX)
+  const flowToken = searchParams.get('token') || ''
 
   const [mensaje, setMensaje] = useState('Verificando tu pago...')
   const [error, setError] = useState('')
@@ -32,7 +36,8 @@ export default function PagoExitosoPage() {
         const res = await fetch('/api/pagos/verificar-pago-exitoso', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sitioId }),
+          // Pasamos el flowToken de la URL → el endpoint lo usa para llamar Flow directamente
+          body: JSON.stringify({ sitioId, flowToken }),
         })
         const data = await res.json()
 
@@ -40,8 +45,11 @@ export default function PagoExitosoPage() {
 
         if (data.sinSesion) {
           stoppedRef.current = true
-          const callbackUrl = encodeURIComponent(`/pago-exitoso/${sitioId}`)
-          router.replace(`/login?callbackUrl=${callbackUrl}`)
+          // Preservamos el token en el callbackUrl para recuperarlo después del login
+          const dest = flowToken
+            ? `/pago-exitoso/${sitioId}?token=${flowToken}`
+            : `/pago-exitoso/${sitioId}`
+          router.replace(`/login?callbackUrl=${encodeURIComponent(dest)}`)
           return
         }
 
@@ -94,7 +102,7 @@ export default function PagoExitosoPage() {
     return () => {
       stoppedRef.current = true
     }
-  }, [sitioId, router])
+  }, [sitioId, flowToken, router])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
@@ -149,5 +157,20 @@ export default function PagoExitosoPage() {
         )}
       </div>
     </div>
+  )
+}
+
+// useSearchParams() necesita Suspense en Next.js 13+
+export default function PagoExitosoPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+          <Loader2 className="w-12 h-12 text-violet-400 animate-spin" />
+        </div>
+      }
+    >
+      <PagoExitosoContent />
+    </Suspense>
   )
 }
