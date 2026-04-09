@@ -37,6 +37,7 @@ export function truncate(str: string, maxLength: number): string {
 }
 
 export const PLAN_PRECIOS = {
+  prueba: 1000,
   basico: 50000,
   pro: 100000,
   premium: 300000,
@@ -44,6 +45,7 @@ export const PLAN_PRECIOS = {
 } as const
 
 export const PLAN_LIMITE_EDICIONES = {
+  prueba: 1,
   basico: 1,
   pro: 5,
   premium: 5,
@@ -51,6 +53,7 @@ export const PLAN_LIMITE_EDICIONES = {
 } as const
 
 export const PLAN_NOMBRES = {
+  prueba: 'Prueba',
   basico: 'Básico',
   pro: 'Pro',
   premium: 'Premium',

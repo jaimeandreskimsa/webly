@@ -12,7 +12,7 @@ import { relations } from 'drizzle-orm'
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
-export const planEnum = pgEnum('plan', ['basico', 'pro', 'premium', 'broker'])
+export const planEnum = pgEnum('plan', ['prueba', 'basico', 'pro', 'premium', 'broker'])
 export const rolEnum = pgEnum('rol', ['usuario', 'admin'])
 export const estadoSitioEnum = pgEnum('estado_sitio', [
   'pendiente_pago',
