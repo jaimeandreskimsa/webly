@@ -3,16 +3,16 @@
 import { useState, useRef } from 'react'
 import { Upload, X, ImagePlus, Loader2, AlertCircle, Sparkles, Wand2, Minus, Plus, Info, Check } from 'lucide-react'
 import type { DatosWizard } from '../WizardCreacion'
-import { cn } from '@/lib/utils'
+import { cn, type PlanId } from '@/lib/utils'
 
 interface Props {
   datos: DatosWizard
   onChange: (d: Partial<DatosWizard>) => void
-  plan: 'basico' | 'pro' | 'premium' | 'broker'
+  plan: PlanId
 }
 
-const limiteImagenes = { basico: 0, pro: 10, premium: 30, broker: 20 }
-const limiteIA = { basico: 2, pro: 5, premium: 10, broker: 10 }
+const limiteImagenes = { prueba: 0, basico: 0, pro: 10, premium: 30, broker: 20 }
+const limiteIA = { prueba: 2, basico: 2, pro: 5, premium: 10, broker: 10 }
 
 type Tab = 'subir' | 'ia'
 

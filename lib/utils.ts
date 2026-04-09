@@ -36,6 +36,8 @@ export function truncate(str: string, maxLength: number): string {
   return str.slice(0, maxLength) + '...'
 }
 
+export type PlanId = 'prueba' | 'basico' | 'pro' | 'premium' | 'broker'
+
 export const PLAN_PRECIOS = {
   prueba: 1000,
   basico: 50000,

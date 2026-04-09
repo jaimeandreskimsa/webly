@@ -1033,7 +1033,7 @@ El sitio debe funcionar abriendo directamente en el navegador.
 
 // ─── Get system prompt by plan ────────────────────────────────────────────────
 
-export function getSystemPrompt(plan: 'basico' | 'pro' | 'premium' | 'broker'): string {
+export function getSystemPrompt(plan: 'prueba' | 'basico' | 'pro' | 'premium' | 'broker'): string {
   switch (plan) {
     case 'premium': return SYSTEM_PROMPT_PREMIUM
     case 'pro': return SYSTEM_PROMPT_PRO

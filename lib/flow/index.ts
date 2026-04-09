@@ -135,7 +135,7 @@ export async function obtenerEstadoPago(params: {
 
 // ─── Helper: generar parámetros de pago para un plan ─────────────────────────
 export interface PlanPagoParams {
-  plan: 'basico' | 'pro' | 'premium' | 'broker'
+  plan: 'prueba' | 'basico' | 'pro' | 'premium' | 'broker'
   sitioId: string
   userId: string
   nombreEmpresa: string

@@ -12,10 +12,10 @@ import { StepDiseno } from './steps/StepDiseno'
 import { StepMedia } from './steps/StepMedia'
 import { StepContacto } from './steps/StepContacto'
 import { StepPropiedades, type PropiedadWizard } from './steps/StepPropiedades'
-import { cn } from '@/lib/utils'
+import { cn, type PlanId } from '@/lib/utils'
 
 export interface DatosConfiguracion {
-  plan: 'basico' | 'pro' | 'premium' | 'broker'
+  plan: PlanId
   nombreEmpresa: string
   rubro: string
   descripcion: string
@@ -97,7 +97,7 @@ const datosIniciales: DatosConfiguracion = {
 }
 
 interface WizardConfiguracionProps {
-  plan: 'basico' | 'pro' | 'premium' | 'broker'
+  plan: PlanId
   sitioId: string
 }
 

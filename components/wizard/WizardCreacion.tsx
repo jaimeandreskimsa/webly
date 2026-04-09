@@ -13,10 +13,10 @@ import { StepMedia } from './steps/StepMedia'
 import { StepContacto } from './steps/StepContacto'
 import { StepResumenPago } from './steps/StepResumenPago'
 import { StepPropiedades, type PropiedadWizard } from './steps/StepPropiedades'
-import { cn, formatCLP, PLAN_PRECIOS } from '@/lib/utils'
+import { cn, formatCLP, PLAN_PRECIOS, type PlanId } from '@/lib/utils'
 
 export interface DatosWizard {
-  plan: 'basico' | 'pro' | 'premium' | 'broker'
+  plan: PlanId
   nombreEmpresa: string
   rubro: string
   descripcion: string

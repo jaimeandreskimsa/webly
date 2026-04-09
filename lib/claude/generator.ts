@@ -4,14 +4,16 @@ import type { DatosWizard } from '@/components/wizard/WizardCreacion'
 import { getConfig, isValidSecret } from '@/lib/config'
 
 const MAX_TOKENS_POR_PLAN = {
-  basico:  60_000,   // ↑ 20k→60k  · landing 1 página con Sonnet 4.6
-  pro:     60_000,   // ↑ 12k→60k  · SPA 4 páginas con Sonnet 4.6
-  premium: 60_000,   // ↑ 28k→60k  · sitio premium con Sonnet 4.6
-  broker:  60_000,   // ↑ 20k→60k  · portal inmobiliario con Sonnet 4.6
+  prueba:  60_000,
+  basico:  60_000,
+  pro:     60_000,
+  premium: 60_000,
+  broker:  60_000,
 }
 
 // claude-sonnet-4-6 para todos los planes — máxima calidad.
 const MODELO_POR_PLAN: Record<string, string> = {
+  prueba:  'claude-sonnet-4-6',
   basico:  'claude-sonnet-4-6',
   pro:     'claude-sonnet-4-6',
   premium: 'claude-sonnet-4-6',
@@ -25,7 +27,7 @@ export interface ResultadoGeneracion {
 }
 
 // Carga configuración dinámica desde DB con fallbacks a constantes
-async function getGeneratorConfig(plan: 'basico' | 'pro' | 'premium' | 'broker') {
+async function getGeneratorConfig(plan: 'prueba' | 'basico' | 'pro' | 'premium' | 'broker') {
   const planModelo = MODELO_POR_PLAN[plan] ?? 'claude-sonnet-4-5'
   const [systemPromptDB, modeloGlobal, modeloPlan, maxTokensStr, apiKeyDB] = await Promise.all([
     getConfig(`system_prompt_${plan}`, ''),

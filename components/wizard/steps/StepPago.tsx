@@ -10,6 +10,12 @@ import { formatCLP, PLAN_PRECIOS } from '@/lib/utils'
 import type { DatosWizard } from '../WizardCreacion'
 
 const planDetalles = {
+  prueba: {
+    icon: Zap,
+    color: 'text-pink-400',
+    bg: 'bg-pink-500/10 border-pink-500/30',
+    features: ['1 Landing page', 'Animaciones incluidas', 'Formulario contacto', 'Descarga ZIP'],
+  },
   basico: {
     icon: Globe,
     color: 'text-blue-400',
