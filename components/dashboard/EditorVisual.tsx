@@ -1,72 +1,63 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Loader2, Edit3, Eye, Save, CheckCircle2, AlertCircle,
-  Image as ImageIcon, X, Upload, Wand2, MousePointerClick, Info,
+  Image as ImageIcon, Upload, Wand2, MousePointerClick,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// ─── Inyectar script de edición inline en el HTML del sitio ─────────────────
-function injectEditor(html: string): string {
+function extractImages(html: string): { src: string; originalSrc: string }[] {
+  const seen = new Set<string>()
+  const results: { src: string; originalSrc: string }[] = []
+  const re = /<img[^>]+src=["']([^"']+)["'][^>]*/gi
+  let m
+  while ((m = re.exec(html)) !== null) {
+    const src = m[1]
+    if (!src || src.startsWith('data:') || seen.has(src)) continue
+    seen.add(src)
+    results.push({ src, originalSrc: src })
+  }
+  return results
+}
+
+function injectTextEditor(html: string): string {
   const code = `<style id="__we_s">
 [data-we]:hover { outline: 2px dashed rgba(99,102,241,.65) !important; outline-offset: 1px; cursor: text !important; border-radius: 2px; }
 [data-we][contenteditable="true"] { outline: 2px solid #6366f1 !important; outline-offset: 1px; background: rgba(99,102,241,.06) !important; cursor: text !important; }
-img[data-wi] { cursor: pointer !important; }
-img[data-wi]:hover { outline: 2px dashed rgba(251,146,60,.8) !important; outline-offset: 2px; }
 a { pointer-events: none !important; }
 </style>
 <script id="__we_js">(function() {
   var T = 'h1,h2,h3,h4,h5,h6,p,li,button,label,td,th,figcaption,blockquote,small,strong,em,span';
   document.querySelectorAll(T).forEach(function(el, i) {
     if (el.closest('[data-we]')) return;
-    var inner = 0;
-    el.querySelectorAll(T).forEach(function() { inner++; });
-    if (inner > 0) return;
-    if (!el.textContent.trim()) return;
-    el.dataset.we = i;
-    el.title = 'Doble-click para editar';
+    var inner = 0; el.querySelectorAll(T).forEach(function() { inner++; });
+    if (inner > 0 || !el.textContent.trim()) return;
+    el.dataset.we = i; el.title = 'Doble-click para editar';
     el.addEventListener('dblclick', function(e) {
       e.stopPropagation(); e.preventDefault();
-      document.querySelectorAll('[contenteditable="true"]').forEach(function(o) {
-        if (o !== el) o.contentEditable = 'false';
-      });
+      document.querySelectorAll('[contenteditable="true"]').forEach(function(o) { if (o !== el) o.contentEditable = 'false'; });
       el.contentEditable = 'true'; el.focus();
-      try {
-        var r = document.createRange(); r.selectNodeContents(el);
-        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-      } catch(err) {}
+      try { var r = document.createRange(); r.selectNodeContents(el); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch(err) {}
     });
     el.addEventListener('blur', function() {
       el.contentEditable = 'false';
       window.parent.postMessage({ type: 'webtory-changed', html: document.documentElement.outerHTML }, '*');
     });
     el.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' || (e.key === 'Enter' && !e.shiftKey)) {
-        e.preventDefault(); el.blur();
-      }
-    });
-  });
-  document.querySelectorAll('img').forEach(function(img, i) {
-    img.dataset.wi = i; img.title = 'Click para cambiar imagen';
-    img.addEventListener('click', function(e) {
-      e.preventDefault(); e.stopPropagation();
-      window.parent.postMessage({ type: 'webtory-image', src: img.src, idx: i }, '*');
+      if (e.key === 'Escape' || (e.key === 'Enter' && !e.shiftKey)) { e.preventDefault(); el.blur(); }
     });
   });
 })();</script>`
-
   return html.includes('</body>') ? html.replace('</body>', code + '</body>') : html + code
 }
 
-// ─── Props ────────────────────────────────────────────────────────────────────
 interface EditorVisualProps {
   sitioId: string
   htmlActual: string
   onIrIA: () => void
 }
 
-// ─── Componente ───────────────────────────────────────────────────────────────
 export function EditorVisual({ sitioId, htmlActual, onIrIA }: EditorVisualProps) {
   const [pendingHtml, setPendingHtml] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
@@ -74,25 +65,17 @@ export function EditorVisual({ sitioId, htmlActual, onIrIA }: EditorVisualProps)
   const [guardando, setGuardando] = useState(false)
   const [guardado, setGuardado] = useState(false)
   const [error, setError] = useState('')
-
-  // Imagen seleccionada para reemplazar
-  const [imgSrc, setImgSrc] = useState<string | null>(null)
-  const [subiendo, setSubiendo] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [subiendoIdx, setSubiendoIdx] = useState<number | null>(null)
 
   const currentHtml = pendingHtml ?? htmlActual
   const hayPendientes = pendingHtml !== null && !guardado
+  const imagenes = useMemo(() => extractImages(currentHtml), [currentHtml])
 
-  // Escuchar mensajes del iframe
   useEffect(() => {
     function handler(e: MessageEvent) {
-      if (!e.data?.type) return
-      if (e.data.type === 'webtory-changed') {
+      if (e.data?.type === 'webtory-changed') {
         setPendingHtml(e.data.html as string)
         setGuardado(false)
-      }
-      if (e.data.type === 'webtory-image') {
-        setImgSrc(e.data.src as string)
       }
     }
     window.addEventListener('message', handler)
@@ -101,8 +84,7 @@ export function EditorVisual({ sitioId, htmlActual, onIrIA }: EditorVisualProps)
 
   function toggleEditMode() {
     setEditMode(m => !m)
-    setIframeKey(k => k + 1) // forzar reload del iframe
-    setImgSrc(null)
+    setIframeKey(k => k + 1)
   }
 
   async function guardarCambios() {
@@ -115,10 +97,7 @@ export function EditorVisual({ sitioId, htmlActual, onIrIA }: EditorVisualProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ html: pendingHtml }),
       })
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        throw new Error(d.error || 'Error al guardar')
-      }
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Error al guardar')
       setGuardado(true)
     } catch (err: any) {
       setError(err.message || 'Error al guardar')
@@ -127,9 +106,8 @@ export function EditorVisual({ sitioId, htmlActual, onIrIA }: EditorVisualProps)
     }
   }
 
-  async function reemplazarImagen(file: File) {
-    if (!imgSrc) return
-    setSubiendo(true)
+  async function reemplazarImagen(originalSrc: string, file: File, idx: number) {
+    setSubiendoIdx(idx)
     setError('')
     try {
       const fd = new FormData()
@@ -138,28 +116,23 @@ export function EditorVisual({ sitioId, htmlActual, onIrIA }: EditorVisualProps)
       const res = await fetch('/api/upload', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al subir imagen')
-
-      // Reemplazar src en el HTML actual
       const base = pendingHtml ?? htmlActual
-      const escaped = imgSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const escaped = originalSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const newHtml = base.replace(new RegExp(escaped, 'g'), data.url as string)
       setPendingHtml(newHtml)
       setGuardado(false)
-      setImgSrc(null)
-      setIframeKey(k => k + 1) // reload con nueva imagen
+      setIframeKey(k => k + 1)
     } catch (err: any) {
-      setError(err.message || 'Error al reemplazar imagen')
+      setError(err.message || 'Error al subir imagen')
     } finally {
-      setSubiendo(false)
+      setSubiendoIdx(null)
     }
   }
 
   return (
     <div className="flex gap-5" style={{ height: 'calc(100vh - 230px)', minHeight: 520 }}>
-
-      {/* ── Panel izquierdo: preview iframe ──────────────────────────── */}
+      {/* ── Preview iframe ──────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col gap-2 min-w-0">
-        {/* Toolbar del iframe */}
         <div className="flex items-center gap-2 glass rounded-xl border border-white/5 px-3 py-2 flex-shrink-0">
           <button
             onClick={toggleEditMode}
@@ -170,29 +143,19 @@ export function EditorVisual({ sitioId, htmlActual, onIrIA }: EditorVisualProps)
                 : 'text-muted-foreground hover:text-white hover:bg-white/5 border border-white/10'
             )}
           >
-            {editMode
-              ? <><Edit3 className="w-3.5 h-3.5" /> Editando</>
-              : <><Eye className="w-3.5 h-3.5" /> Solo ver</>
-            }
+            {editMode ? <><Edit3 className="w-3.5 h-3.5" /> Editando textos</> : <><Eye className="w-3.5 h-3.5" /> Solo vista</>}
           </button>
           {editMode && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <MousePointerClick className="w-3 h-3" />
-              Doble-click en texto · Click en imagen para reemplazar
-            </span>
-          )}
-          {!editMode && (
-            <span className="text-xs text-muted-foreground">
-              Activa "Editando" para modificar texto e imágenes
+              Doble-click en cualquier texto para editarlo
             </span>
           )}
         </div>
-
-        {/* iframe */}
         <div className="flex-1 rounded-2xl border border-white/10 overflow-hidden bg-white">
           <iframe
             key={iframeKey}
-            srcDoc={editMode ? injectEditor(currentHtml) : currentHtml}
+            srcDoc={editMode ? injectTextEditor(currentHtml) : currentHtml}
             className="w-full h-full"
             sandbox="allow-scripts allow-same-origin"
             title="Preview del sitio"
@@ -200,20 +163,19 @@ export function EditorVisual({ sitioId, htmlActual, onIrIA }: EditorVisualProps)
         </div>
       </div>
 
-      {/* ── Panel derecho: acciones ───────────────────────────────────── */}
+      {/* ── Panel derecho ───────────────────────────────────────────── */}
       <div className="w-72 flex flex-col gap-3 flex-shrink-0 overflow-y-auto">
-
-        {/* Estado */}
+        {/* Notificaciones */}
         {hayPendientes && (
           <div className="glass rounded-xl border border-amber-500/30 px-3 py-2.5 flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
-            <span className="text-xs text-amber-300 font-medium">Hay cambios sin guardar</span>
+            <span className="text-xs text-amber-300 font-medium">Cambios pendientes de guardar</span>
           </div>
         )}
         {guardado && (
           <div className="glass rounded-xl border border-green-500/30 px-3 py-2.5 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
-            <span className="text-xs text-green-400 font-medium">Cambios guardados correctamente</span>
+            <span className="text-xs text-green-400 font-medium">Guardado correctamente</span>
           </div>
         )}
         {error && (
@@ -223,114 +185,125 @@ export function EditorVisual({ sitioId, htmlActual, onIrIA }: EditorVisualProps)
           </div>
         )}
 
-        {/* Guardar cambios directos */}
+        {/* Imágenes del sitio */}
         <div className="glass rounded-2xl border border-white/5 p-4 space-y-3">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
-            <Edit3 className="w-4 h-4 text-white/60" />
-            Edición directa
+            <ImageIcon className="w-4 h-4 text-orange-400" />
+            Imágenes del sitio
+            <span className="text-xs font-normal text-muted-foreground ml-auto">{imagenes.length}</span>
+          </h3>
+          {imagenes.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No se encontraron imágenes.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {imagenes.map((img, idx) => (
+                <label
+                  key={idx}
+                  className={cn(
+                    'relative group rounded-xl overflow-hidden border h-20 flex items-center justify-center cursor-pointer transition-all',
+                    subiendoIdx === idx
+                      ? 'border-orange-500/50 bg-black/30'
+                      : 'border-white/10 bg-white/5 hover:border-orange-500/40'
+                  )}
+                  title="Click para cambiar esta imagen"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.src}
+                    alt={`Imagen ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={e => { (e.target as HTMLImageElement).style.opacity = '0.2' }}
+                  />
+                  {/* Overlay */}
+                  <div className={cn(
+                    'absolute inset-0 flex flex-col items-center justify-center gap-1 transition-all rounded-xl',
+                    subiendoIdx === idx ? 'bg-black/65' : 'bg-black/0 group-hover:bg-black/55'
+                  )}>
+                    {subiendoIdx === idx ? (
+                      <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <span className="text-[10px] text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity text-center leading-tight px-1">
+                          Cambiar
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    disabled={subiendoIdx !== null}
+                    onChange={e => {
+                      const f = e.target.files?.[0]
+                      if (f) reemplazarImagen(img.originalSrc, f, idx)
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Pasa el cursor sobre una imagen y haz click para reemplazarla.{' '}
+            <span className="text-green-400 font-medium">Gratis.</span>
+          </p>
+        </div>
+
+        {/* Editar textos */}
+        <div className="glass rounded-2xl border border-white/5 p-4 space-y-3">
+          <h3 className="text-sm font-bold flex items-center gap-1.5">
+            <Edit3 className="w-4 h-4 text-indigo-400" />
+            Editar textos
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Edita textos e imágenes directamente en el preview.
-            <span className="text-green-400 font-medium"> No consume ediciones.</span>
+            Activa el modo edición y haz doble-click sobre cualquier texto del preview.{' '}
+            <span className="text-green-400 font-medium">Gratis.</span>
           </p>
-          <div className="bg-white/3 rounded-lg p-3 space-y-1.5 text-xs text-muted-foreground">
-            <div className="flex items-start gap-1.5">
-              <span className="text-indigo-400 shrink-0">①</span>
-              Activa modo "Editando"
-            </div>
-            <div className="flex items-start gap-1.5">
-              <span className="text-indigo-400 shrink-0">②</span>
-              Doble-click en cualquier texto para editarlo
-            </div>
-            <div className="flex items-start gap-1.5">
-              <span className="text-indigo-400 shrink-0">③</span>
-              Click en una imagen para reemplazarla
-            </div>
-            <div className="flex items-start gap-1.5">
-              <span className="text-indigo-400 shrink-0">④</span>
-              Presiona Enter o Escape para confirmar
-            </div>
-          </div>
           <button
-            onClick={guardarCambios}
-            disabled={!hayPendientes || guardando}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-green-500/15 border border-green-500/30 text-green-300 text-sm font-semibold hover:bg-green-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={toggleEditMode}
+            className={cn(
+              'w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border',
+              editMode
+                ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300'
+                : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10'
+            )}
           >
-            {guardando
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
-              : <><Save className="w-4 h-4" /> Guardar cambios</>
-            }
+            <Edit3 className="w-4 h-4" />
+            {editMode ? 'Modo edición activo' : 'Activar edición de textos'}
           </button>
         </div>
 
-        {/* Reemplazar imagen (aparece al hacer click en una imagen) */}
-        {imgSrc && (
-          <div className="glass rounded-2xl border border-orange-500/30 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-orange-300 flex items-center gap-1.5">
-                <ImageIcon className="w-4 h-4" />
-                Reemplazar imagen
-              </h3>
-              <button
-                onClick={() => setImgSrc(null)}
-                className="text-muted-foreground hover:text-white transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            {/* Preview imagen actual */}
-            <div className="rounded-lg overflow-hidden border border-white/10 bg-white/5 flex items-center justify-center max-h-28">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imgSrc} alt="" className="w-full object-cover max-h-28" />
-            </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              className="hidden"
-              onChange={e => {
-                const f = e.target.files?.[0]
-                if (f) reemplazarImagen(f)
-              }}
-            />
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={subiendo}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-orange-500/15 border border-orange-500/30 text-orange-300 text-sm font-semibold hover:bg-orange-500/25 transition-all disabled:opacity-40"
-            >
-              {subiendo
-                ? <><Loader2 className="w-4 h-4 animate-spin" /> Subiendo...</>
-                : <><Upload className="w-4 h-4" /> Elegir nueva imagen</>
-              }
-            </button>
-          </div>
-        )}
+        {/* Guardar */}
+        <button
+          onClick={guardarCambios}
+          disabled={!hayPendientes || guardando}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-green-500/15 border border-green-500/30 text-green-300 text-sm font-bold hover:bg-green-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {guardando
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
+            : <><Save className="w-4 h-4" /> Guardar todos los cambios</>
+          }
+        </button>
 
-        {/* Cambios con IA */}
+        {/* IA */}
         <div className="glass rounded-2xl border border-white/5 p-4 space-y-3">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
             <Wand2 className="w-4 h-4 text-indigo-400" />
             Cambios con IA
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Para cambios de diseño, estructura o contenido más profundos.
-            <span className="text-amber-400 font-medium"> Consume 1 edición.</span>
+            Redesign, nuevas secciones o cambios profundos.{' '}
+            <span className="text-amber-400 font-medium">Consume 1 edición.</span>
           </p>
           <button
             onClick={onIrIA}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl btn-gradient text-white text-xs font-semibold hover:scale-[1.02] transition-transform"
           >
             <Wand2 className="w-4 h-4" />
-            Ir a cambios con IA
+            Usar IA para editar
           </button>
-        </div>
-
-        {/* Tip */}
-        <div className="glass rounded-xl border border-white/5 px-3 py-2.5 flex items-start gap-2">
-          <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Los cambios directos no afectan el historial de versiones ni el contador de ediciones.
-          </p>
         </div>
       </div>
     </div>
