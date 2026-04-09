@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CreditCard, Shield, Check, Loader2, Zap,
-  Globe, Sparkles, Crown, Building2
+  Globe, Sparkles, Crown, Building2, UtensilsCrossed
 } from 'lucide-react'
 import { formatCLP, PLAN_PRECIOS } from '@/lib/utils'
 import type { DatosWizard } from '../WizardCreacion'
@@ -39,6 +39,12 @@ const planDetalles = {
     color: 'text-emerald-400',
     bg: 'bg-emerald-500/10 border-emerald-500/30',
     features: ['Portal inmobiliario', 'Gestión de propiedades', 'Filtros y búsqueda', 'Deploy automático'],
+  },
+  restaurante: {
+    icon: UtensilsCrossed,
+    color: 'text-orange-400',
+    bg: 'bg-orange-500/10 border-orange-500/30',
+    features: ['Sitio para restaurante', 'Menú digital interactivo', 'Gestión de carta', 'Deploy automático'],
   },
 }
 

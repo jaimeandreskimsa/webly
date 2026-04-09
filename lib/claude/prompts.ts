@@ -639,6 +639,11 @@ export function construirPromptUsuario(datos: DatosWizard): string {
     return construirPromptBroker(datos)
   }
 
+  // ── RESTAURANTE: prompt especializado para menú de restaurante ─────────
+  if (datos.plan === 'restaurante') {
+    return construirPromptRestaurante(datos)
+  }
+
   const serviciosTexto = datos.servicios
     .filter(s => s.nombre)
     .map(s => `- ${s.nombre}${s.precio ? ` (${s.precio})` : ''}: ${s.descripcion}`)
@@ -1031,13 +1036,294 @@ CSS en <style> en <head>, JS al final del <body>.
 El sitio debe funcionar abriendo directamente en el navegador.
 `
 
+// ─── Prompt especializado para plan Restaurante ───────────────────────────────
+
+function construirPromptRestaurante(datos: DatosWizard): string {
+  const platosIniciales = (datos as any).platosIniciales || []
+
+  const platosJson = platosIniciales.length > 0
+    ? JSON.stringify(platosIniciales.map((p: any, i: number) => ({
+        id: `plato-${i + 1}`,
+        nombre: p.nombre || `Plato ${i + 1}`,
+        descripcion: p.descripcion || '',
+        precio: p.precio ? Number(p.precio) : null,
+        categoria: p.categoria || 'principal',
+        imagen: p.imagen || '',
+        disponible: p.disponible !== false,
+        destacado: p.destacado ?? false,
+        orden: i,
+      })))
+    : null
+
+  const platosTexto = platosJson
+    ? `PLATOS REALES DEL CLIENTE (${platosIniciales.length} platos):
+Inyecta estos datos directamente en el marcador window.CARTA:
+window.CARTA = /* MENU_DATA_START */${platosJson}/* MENU_DATA_END */;
+NO generes platos de ejemplo porque el cliente ya tiene los suyos.`
+    : `SIN PLATOS INICIALES:
+Usa el marcador vacío: window.CARTA = /* MENU_DATA_START */[]/* MENU_DATA_END */;
+Cuando window.CARTA.length === 0, genera 12-16 platos de ejemplo ficticios pero realistas para un restaurante de ${datos.ciudad || 'Chile'}. Incluye variedad de categorías (entrada, principal, postre, bebida), precios reales en CLP, y descripciones apetitosas.`
+
+  const todasImagenes = [
+    ...(datos.imagenes || []),
+    ...(datos.imagenesIA || []),
+  ]
+  const imagenesTexto = todasImagenes.length > 0
+    ? `IMÁGENES DEL RESTAURANTE:\n${todasImagenes.map((url, i) => `- Imagen ${i + 1}: ${url}`).join('\n')}\nUsa estas imágenes en el hero, sección del local y galería.`
+    : 'Sin imágenes propias — usa Unsplash con keywords gastronómicas: restaurant interior, food plating, chef cooking, dining table, gourmet dish'
+
+  const marcaTexto = datos.marcaAnalizada
+    ? `IDENTIDAD DE MARCA:\n- Color primario: ${datos.marcaAnalizada.coloresPrimarios}\n- Color secundario: ${datos.marcaAnalizada.coloresSecundarios}\n- Tipografía: ${datos.marcaAnalizada.tipografia}\n- Estilo: ${datos.marcaAnalizada.tipoDiseno}`
+    : ''
+
+  const redesTexto = Object.entries(datos.redesSociales)
+    .filter(([_, v]) => v)
+    .map(([k, v]) => `- ${k}: ${v}`)
+    .join('\n') || 'No proporcionadas'
+
+  const whatsapp = datos.redesSociales?.whatsapp || datos.telefono || ''
+
+  return `
+Crea un SITIO WEB DE RESTAURANTE PROFESIONAL completo con menú digital interactivo para este negocio gastronómico chileno.
+
+## DATOS DEL RESTAURANTE
+
+**Nombre:** ${datos.nombreEmpresa}
+**Rubro:** ${datos.rubro || 'Restaurante / Cafetería'}
+**Ciudad:** ${datos.ciudad || 'Chile'}
+**Descripción:** ${datos.descripcion || `Restaurante con lo mejor de la gastronomía en ${datos.ciudad || 'Chile'}`}
+**Propuesta de valor:** ${datos.propuestaValor || 'Sabores únicos, experiencia memorable'}
+
+## DATOS DE CONTACTO
+- Teléfono / WhatsApp: ${datos.telefono || 'No proporcionado'}
+- Email: ${datos.email || 'No proporcionado'}
+- Dirección: ${datos.direccion || datos.ciudad || 'Chile'}
+- Horario: ${datos.horario || 'Consultar disponibilidad'}
+
+## REDES SOCIALES
+${redesTexto}
+
+## PREFERENCIAS VISUALES
+- Colores primarios: ${datos.coloresPrimarios}
+- Colores secundarios: ${datos.coloresSecundarios}
+- Estilo: ${datos.tipoDiseno} — ${datos.estilo}
+- Tipografía: ${datos.tipografia}
+
+${marcaTexto ? `${marcaTexto}\n` : ''}
+## MEDIA
+${imagenesTexto}
+${datos.logo ? `Logo del restaurante: ${datos.logo}` : 'Sin logo — crear logotipo tipográfico elegante con el nombre'}
+
+## CARTA / MENÚ
+${platosTexto}
+
+## INSTRUCCIONES CRÍTICAS
+
+1. **window.CARTA**: DEBES incluir exactamente el marcador con los datos de la carta indicados arriba (reales o vacío para ejemplos).
+
+2. **WhatsApp**: Número: ${whatsapp || 'No proporcionado'} (sin espacios ni +, ej: 56912345678). Botón flotante siempre visible + CTA "Hacer reserva por WhatsApp".
+
+3. **SEO**: Title: "${datos.nombreEmpresa} — ${datos.rubro || 'Restaurante'} en ${datos.ciudad || 'Chile'} | Menú Online"
+
+${(() => {
+  const refs = (datos as any).sitiosReferencia?.filter((u: string) => u?.trim()) || []
+  return refs.length > 0
+    ? `## SITIOS WEB DE REFERENCIA\n${refs.map((u: string) => `- ${u}`).join('\n')}\nAnaliza el estilo y úsalos como inspiración.\n`
+    : ''
+})()}
+## INSTRUCCIONES ADICIONALES
+- **NO incluyas cursor personalizado** que siga al mouse
+- **NO incluyas botones magnetic** que se muevan al pasar el mouse
+- **NO incluyas efectos 3D tilt** en cards que sigan al mouse
+- Los hovers deben ser simples: scale, sombra, cambio de color
+
+Genera el HTML COMPLETO del sitio restaurante. Que sea visualmente impresionante y apetitoso.
+`
+}
+
+// ─── System Prompt RESTAURANTE ────────────────────────────────────────────────
+
+export const SYSTEM_PROMPT_RESTAURANTE = `
+Eres un experto desarrollador web especializado en sitios web para restaurantes y negocios gastronómicos modernos. Creas sitios con menús digitales interactivos, diseño apetitoso y alta conversión.
+
+## CARACTERÍSTICA CLAVE: MENÚ DINÁMICO
+El sitio usa window.CARTA como fuente de datos del menú. Este array se inyecta automáticamente cuando el dueño actualiza su carta desde el panel de administración. DEBES incluir exactamente este marcador en el JS:
+
+window.CARTA = /* MENU_DATA_START */[]/* MENU_DATA_END */;
+
+Cada plato tiene esta estructura exacta:
+{
+  id, nombre, descripcion, precio (CLP o null),
+  categoria ('entrada'|'principal'|'postre'|'bebida'|'otro'),
+  imagen (URL o ''), disponible (bool), destacado (bool), orden (int)
+}
+
+## STACK OBLIGATORIO
+- HTML5 semántico + CSS3 avanzado + JavaScript ES6+ vanilla
+- GSAP 3.12 + ScrollTrigger para animaciones
+- Swiper.js 11 para sliders
+- Google Fonts: 2 fuentes (una elegante/display para el nombre, una limpia para el menú)
+- Phosphor Icons para todos los íconos
+
+## CDNs A INCLUIR
+\`\`\`html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+\`\`\`
+
+## ARQUITECTURA MULTIPÁGINA (SPA con router hash)
+4 páginas:
+- inicio → Hero + platos destacados + historia del local + galería
+- menu → Carta completa filtrable por categoría
+- nosotros → Historia, chef, valores, fotos del local
+- contacto → Formulario reserva + mapa + dirección + horarios
+
+## ESTRUCTURA DE CADA PÁGINA
+
+### INICIO
+1. Header sticky glassmorphism con logo, nav, teléfono/reservas visible, hamburguesa mobile
+2. Hero con imagen de fondo apetitosa, nombre del restaurante en tipografía display grande, eslogan y 2 CTAs: "Ver Menú" y "Hacer Reserva"
+3. Sección "Platos Destacados": cards de los platos con destacado=true (máx 6)
+4. Historia / Nuestra cocina: texto + imagen lateral
+5. Galería: grid masonry o Swiper con fotos del local y platos
+6. Testimonios: 3 opiniones de clientes con estrellas
+7. CTA reserva: banner con fondo oscuro + botón WhatsApp
+8. Footer con dirección, horarios, redes, mapa pequeño
+
+### MENÚ
+1. Header
+2. Hero pequeño: "Nuestra Carta" con imagen de fondo de comida
+3. Filtros de categoría: botones pill horizontales (Todos | Entradas | Platos de Fondo | Postres | Bebidas | Otros)
+4. Grid de cards de platos: 3 columnas desktop, 2 tablet, 1 mobile
+5. Mensaje "Sin platos en esta categoría" si aplica
+6. Footer
+
+### NOSOTROS
+1. Header
+2. Hero con clip-path y foto del local/chef
+3. Historia y filosofía del restaurante
+4. El equipo / El chef
+5. Valores y forma de trabajar
+6. Footer
+
+### CONTACTO
+1. Header
+2. Split layout: formulario reserva (izq) + info + mapa (der)
+3. Formulario: nombre, email, teléfono, fecha, hora, número de personas, mensaje, botón enviar
+4. Google Maps embed
+5. Horarios de atención bien visibles
+6. Footer
+
+## CARD DE PLATO OBLIGATORIA
+Cada card debe tener:
+- Imagen (usa imagen si existe, si no imagen Unsplash de comida relevante) con overlay al hover
+- Badge categoría con color por tipo
+- Badge ⭐ DESTACADO si destacado=true
+- Nombre del plato en tipografía atractiva
+- Descripción truncada a 2 líneas
+- Precio en CLP: "$ 12.900" — si precio es null mostrar "Precio a consultar"
+- Indicador de no disponible si disponible=false (tachado o badge rojo)
+- Botón "Consultar" → WhatsApp con mensaje pre-armado
+
+## SISTEMA MENÚ EN JS
+\`\`\`javascript
+window.CARTA = /* MENU_DATA_START */[]/* MENU_DATA_END */;
+
+const CATEGORIAS = ['entrada', 'principal', 'postre', 'bebida', 'otro'];
+const LABELS = { entrada: 'Entradas', principal: 'Platos de Fondo', postre: 'Postres', bebida: 'Bebidas', otro: 'Otros' };
+let categoriaActiva = 'todas';
+
+function filtrarCarta(categoria) {
+  categoriaActiva = categoria;
+  const platos = categoria === 'todas'
+    ? window.CARTA
+    : window.CARTA.filter(p => p.categoria === categoria);
+  renderCarta(platos);
+}
+
+function formatPrecio(precio) {
+  if (!precio) return 'Precio a consultar';
+  return '$ ' + precio.toLocaleString('es-CL');
+}
+
+function renderCarta(lista) {
+  const grid = document.getElementById('menu-grid');
+  if (!grid) return;
+  if (!lista.length) {
+    grid.innerHTML = '<p class="sin-resultados">No hay platos en esta categoría</p>';
+    return;
+  }
+  grid.innerHTML = lista.map(p => \`
+    <div class="plato-card \${!p.disponible ? 'no-disponible' : ''}" data-id="\${p.id}">
+      <div class="plato-img">
+        <img src="\${p.imagen || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400'}"
+             alt="\${p.nombre}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400'">
+        <span class="badge-cat \${p.categoria}">\${LABELS[p.categoria] || p.categoria}</span>
+        \${p.destacado ? '<span class="badge-dest">⭐ Destacado</span>' : ''}
+        \${!p.disponible ? '<div class="overlay-nodisponible">No disponible</div>' : ''}
+      </div>
+      <div class="plato-info">
+        <h3>\${p.nombre}</h3>
+        \${p.descripcion ? \`<p class="plato-desc">\${p.descripcion}</p>\` : ''}
+        <div class="plato-footer">
+          <span class="plato-precio">\${formatPrecio(p.precio)}</span>
+          <a href="https://wa.me/NUMERO?text=Hola,%20me%20interesa%20el%20plato%20\${encodeURIComponent(p.nombre)}"
+             target="_blank" class="btn-consultar">Consultar</a>
+        </div>
+      </div>
+    </div>
+  \`).join('');
+}
+
+// Inicializar menú
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.CARTA.length === 0) {
+    // Generar carta de ejemplo
+    window.CARTA = generarCartaEjemplo();
+  }
+  renderCarta(window.CARTA);
+});
+\`\`\`
+
+## BOTÓN WHATSAPP FLOTANTE OBLIGATORIO
+- Fijo bottom-right 28px, 58x58px, #25D366, pulse animation
+- Tooltip "Hacer reserva" al hover
+- Mensaje pre-armado: "Hola, quiero hacer una reserva en [NOMBRE RESTAURANTE]"
+
+## DISEÑO GASTRONÓMICO
+- Fondo oscuro (negro o marrón oscuro) para el hero — transmite elegancia culinaria
+- Cards de platos sobre fondo claro/neutro para apetitosidad
+- Precio en color principal del cliente, tamaño destacado
+- Fotografías grandes y prominentes — la comida se vende con los ojos
+- Mobile-first: filtros de categoría como scroll horizontal en mobile
+- Animaciones GSAP: reveal secciones, hover suave en cards, contador de platos
+- **NO incluir cursor personalizado**
+- **NO incluir botones magnetic**
+- **NO incluir 3D tilt en cards**
+
+## SEO GASTRONÓMICO
+- Title: "[Restaurante] — [Rubro] en [Ciudad] | Menú Online"
+- Schema.org: Restaurant + Menu JSON-LD
+- Open Graph con imagen de plato o local
+- H1 en cada página, alt en todas las imágenes
+
+## FORMATO DE ENTREGA
+Un único archivo index.html completo, autocontenido.
+CSS en <style> en <head>, JS al final del <body>.
+El sitio debe funcionar abriendo directamente en el navegador.
+`
+
 // ─── Get system prompt by plan ────────────────────────────────────────────────
 
-export function getSystemPrompt(plan: 'prueba' | 'basico' | 'pro' | 'premium' | 'broker'): string {
+export function getSystemPrompt(plan: 'prueba' | 'basico' | 'pro' | 'premium' | 'broker' | 'restaurante'): string {
   switch (plan) {
     case 'premium': return SYSTEM_PROMPT_PREMIUM
     case 'pro': return SYSTEM_PROMPT_PRO
     case 'broker': return SYSTEM_PROMPT_BROKER
+    case 'restaurante': return SYSTEM_PROMPT_RESTAURANTE
     default: return SYSTEM_PROMPT_BASICO
   }
 }

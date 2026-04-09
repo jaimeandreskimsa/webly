@@ -12,7 +12,7 @@ import { relations } from 'drizzle-orm'
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
-export const planEnum = pgEnum('plan', ['prueba', 'basico', 'pro', 'premium', 'broker'])
+export const planEnum = pgEnum('plan', ['prueba', 'basico', 'pro', 'premium', 'broker', 'restaurante'])
 export const rolEnum = pgEnum('rol', ['usuario', 'admin'])
 export const estadoSitioEnum = pgEnum('estado_sitio', [
   'pendiente_pago',
@@ -213,6 +213,25 @@ export const propiedades = pgTable('propiedades', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
+// ─── Platos (Plan Restaurante) ───────────────────────────────────────────────
+
+export const platos = pgTable('platos', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => usuarios.id, { onDelete: 'cascade' }),
+  nombre: text('nombre').notNull(),
+  descripcion: text('descripcion'),
+  precio: integer('precio'), // en CLP
+  categoria: text('categoria').notNull().default('principal'), // entrada | principal | postre | bebida | otro
+  imagen: text('imagen'), // URL única
+  disponible: boolean('disponible').default(true),
+  destacado: boolean('destacado').default(false),
+  orden: integer('orden').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
 // ─── Solicitudes de Ayuda ────────────────────────────────────────────────────
 
 export const solicitudesAyuda = pgTable('solicitudes_ayuda', {
@@ -238,6 +257,7 @@ export const usuariosRelations = relations(usuarios, ({ many, one }) => ({
   }),
   sesiones: many(sesiones),
   propiedades: many(propiedades),
+  platos: many(platos),
 }))
 
 export const sitiosRelations = relations(sitios, ({ one, many }) => ({
@@ -272,3 +292,5 @@ export type Configuracion = typeof configuracion.$inferSelect
 export type Propiedad = typeof propiedades.$inferSelect
 export type NuevaPropiedad = typeof propiedades.$inferInsert
 export type SolicitudAyuda = typeof solicitudesAyuda.$inferSelect
+export type Plato = typeof platos.$inferSelect
+export type NuevoPlato = typeof platos.$inferInsert

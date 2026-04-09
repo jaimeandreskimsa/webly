@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Zap, LayoutDashboard, Globe, Plus, Settings,
-  CreditCard, LogOut, Sparkles, Crown, Building2
+  CreditCard, LogOut, Sparkles, Crown, Building2, UtensilsCrossed
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
@@ -21,6 +21,7 @@ const planBadges = {
   pro: { label: 'Pro', color: 'bg-violet-500/20 text-violet-400 border-violet-500/30' },
   premium: { label: 'Premium', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
   broker: { label: 'Broker', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  restaurante: { label: 'Restaurante', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
 }
 
 interface SidebarProps {
@@ -73,6 +74,23 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
               pathname.startsWith('/dashboard/propiedades') ? 'text-emerald-400' : ''
             )} />
             Mis Propiedades
+          </Link>
+        )}
+        {plan === 'restaurante' && (
+          <Link
+            href="/dashboard/carta"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group mb-1',
+              pathname.startsWith('/dashboard/carta')
+                ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+                : 'text-muted-foreground hover:text-white hover:bg-white/5'
+            )}
+          >
+            <UtensilsCrossed className={cn(
+              'w-4 h-4 transition-transform group-hover:scale-110',
+              pathname.startsWith('/dashboard/carta') ? 'text-orange-400' : ''
+            )} />
+            Mi Carta
           </Link>
         )}
       {/* Crear sitio — siempre visible con el plan correcto */}

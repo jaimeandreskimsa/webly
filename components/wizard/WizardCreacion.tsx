@@ -13,6 +13,7 @@ import { StepMedia } from './steps/StepMedia'
 import { StepContacto } from './steps/StepContacto'
 import { StepResumenPago } from './steps/StepResumenPago'
 import { StepPropiedades, type PropiedadWizard } from './steps/StepPropiedades'
+import { StepCarta, type PlatoWizard } from './steps/StepCarta'
 import { cn, formatCLP, PLAN_PRECIOS, type PlanId } from '@/lib/utils'
 
 export interface DatosWizard {
@@ -51,6 +52,7 @@ export interface DatosWizard {
   }
   sitiosReferencia: string[]
   propiedadesIniciales?: PropiedadWizard[]
+  platosIniciales?: PlatoWizard[]
 }
 
 const pasosBroker = [
@@ -61,6 +63,15 @@ const pasosBroker = [
   { id: 5, titulo: 'Diseño',          icon: Palette,    descripcion: 'Estilo visual' },
   { id: 6, titulo: 'Imágenes',        icon: ImagePlus,  descripcion: 'Logo y fotos de la empresa' },
   { id: 7, titulo: 'Contacto',        icon: Phone,      descripcion: 'Datos de contacto' },
+]
+
+const pasosRestaurante = [
+  { id: 1, titulo: 'Pagar',        icon: CreditCard,  descripcion: 'Confirma tu plan' },
+  { id: 2, titulo: 'Tu negocio',   icon: Building2,   descripcion: 'Info básica de tu restaurante' },
+  { id: 3, titulo: 'Carta',        icon: Briefcase,   descripcion: 'Platos iniciales del menú' },
+  { id: 4, titulo: 'Diseño',       icon: Palette,     descripcion: 'Estilo visual' },
+  { id: 5, titulo: 'Imágenes',     icon: ImagePlus,   descripcion: 'Logo y fotos del local' },
+  { id: 6, titulo: 'Contacto',     icon: Phone,       descripcion: 'Datos de contacto' },
 ]
 
 const pasosDefault = [
@@ -97,6 +108,7 @@ const datosIniciales: DatosWizard = {
   redesSociales: {},
   sitiosReferencia: ['', ''],
   propiedadesIniciales: [],
+  platosIniciales: [],
 }
 
 interface WizardCreacionProps {
@@ -115,7 +127,11 @@ export function WizardCreacion({ planInicial, userId, planPagado, isAdmin }: Wiz
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const pasos = planInicial === 'broker' ? pasosBroker : pasosDefault
+  const pasos = planInicial === 'broker'
+    ? pasosBroker
+    : planInicial === 'restaurante'
+    ? pasosRestaurante
+    : pasosDefault
   const esUltimoPaso = paso === pasos.length
 
   function actualizarDatos(nuevos: Partial<DatosWizard>) {
@@ -288,16 +304,23 @@ export function WizardCreacion({ planInicial, userId, planPagado, isAdmin }: Wiz
         {paso === 2 && <StepNegocio datos={datos} onChange={actualizarDatos} />}
         {paso === 3 && <StepServicios datos={datos} onChange={actualizarDatos} />}
 
+        {/* broker: paso 4 = propiedades */}
         {paso === 4 && datos.plan === 'broker' && <StepPropiedades datos={datos} onChange={actualizarDatos} />}
-        {paso === 4 && datos.plan !== 'broker' && <StepDiseno datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
+        {/* restaurante: paso 3 = carta */}
+        {paso === 3 && datos.plan === 'restaurante' && <StepCarta datos={datos} onChange={actualizarDatos} />}
+        {/* default: paso 4 = diseño */}
+        {paso === 4 && datos.plan !== 'broker' && datos.plan !== 'restaurante' && <StepDiseno datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
 
         {paso === 5 && datos.plan === 'broker' && <StepDiseno datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
-        {paso === 5 && datos.plan !== 'broker' && <StepMedia datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
+        {paso === 4 && datos.plan === 'restaurante' && <StepDiseno datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
+        {paso === 5 && datos.plan !== 'broker' && datos.plan !== 'restaurante' && <StepMedia datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
 
         {paso === 6 && datos.plan === 'broker' && <StepMedia datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
-        {paso === 6 && datos.plan !== 'broker' && <StepContacto datos={datos} onChange={actualizarDatos} />}
+        {paso === 5 && datos.plan === 'restaurante' && <StepMedia datos={datos} onChange={actualizarDatos} plan={datos.plan} />}
+        {paso === 6 && datos.plan !== 'broker' && datos.plan !== 'restaurante' && <StepContacto datos={datos} onChange={actualizarDatos} />}
 
         {paso === 7 && datos.plan === 'broker' && <StepContacto datos={datos} onChange={actualizarDatos} />}
+        {paso === 6 && datos.plan === 'restaurante' && <StepContacto datos={datos} onChange={actualizarDatos} />}
       </div>
 
       {/* Navegación */}

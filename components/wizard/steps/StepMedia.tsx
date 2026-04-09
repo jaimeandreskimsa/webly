@@ -11,8 +11,8 @@ interface Props {
   plan: PlanId
 }
 
-const limiteImagenes = { prueba: 0, basico: 0, pro: 10, premium: 30, broker: 20 }
-const limiteIA = { prueba: 2, basico: 2, pro: 5, premium: 10, broker: 10 }
+const limiteImagenes = { prueba: 0, basico: 0, pro: 10, premium: 30, broker: 20, restaurante: 20 }
+const limiteIA = { prueba: 2, basico: 2, pro: 5, premium: 10, broker: 10, restaurante: 10 }
 
 type Tab = 'subir' | 'ia'
 
