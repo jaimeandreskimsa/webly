@@ -1,104 +1,153 @@
-import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
-import { db, pagos, sitios, usuarios } from '@/lib/db'
-import { eq } from 'drizzle-orm'
-import { obtenerEstadoPago, getFlowCredentials } from '@/lib/flow'
+'use client'
+
+import { useEffect, useState, useRef } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 
 /**
- * Landing público después del pago en Flow.
- * NO está bajo /dashboard → no requiere sesión activa.
- * Verifica el pago server-side y redirige al wizard (o login con callbackUrl).
+ * Landing público después del redirect de Flow.
+ * Renderiza inmediatamente (spinner) y verifica el pago vía API client-side.
+ * No bloquea el browser con llamadas Server-side antes de enviar HTML.
  */
-interface Props {
-  params: Promise<{ id: string }>
-}
+export default function PagoExitosoPage() {
+  const params = useParams()
+  const router = useRouter()
+  const sitioId = params.id as string
 
-export default async function PagoExitosoPage({ params }: Props) {
-  const { id: sitioId } = await params
-  const session = await auth()
+  const [mensaje, setMensaje] = useState('Verificando tu pago...')
+  const [error, setError] = useState('')
+  const [mostrarBoton, setMostrarBoton] = useState(false)
+  const [intentos, setIntentos] = useState(0)
+  const stoppedRef = useRef(false)
 
-  // Buscar el sitio sin requerir que pertenezca al usuario de sesión
-  // (la sesión puede haberse perdido en el cross-site redirect de Flow)
-  const [sitio] = await db
-    .select()
-    .from(sitios)
-    .where(eq(sitios.id, sitioId))
-    .limit(1)
+  useEffect(() => {
+    let count = 0
 
-  if (!sitio) {
-    redirect('/dashboard')
-  }
+    async function verificar() {
+      if (stoppedRef.current) return
+      count++
+      setIntentos(count)
 
-  const wizardUrl = `/dashboard/sitios/${sitioId}/configurar`
-  const loginUrl = `/login?callbackUrl=${encodeURIComponent(wizardUrl)}`
-
-  // Si el sitio ya está listo no hay nada que verificar
-  if (sitio.estado === 'publicado' || sitio.estado === 'generando') {
-    const dest = `/dashboard/sitios/${sitioId}`
-    if (!session?.user) redirect(`/login?callbackUrl=${encodeURIComponent(dest)}`)
-    redirect(dest)
-  }
-
-  if (sitio.estado === 'borrador') {
-    // Pago ya aprobado (por webhook) — ir directo al wizard
-    if (!session?.user) redirect(loginUrl)
-    redirect(wizardUrl)
-  }
-
-  // Estado: pendiente_pago — verificar con Flow antes de renderar
-  const todosPagos = await db
-    .select()
-    .from(pagos)
-    .where(eq(pagos.userId, sitio.userId))
-
-  const pago = todosPagos
-    .filter(p => p.flowOrder?.startsWith(sitioId + '|'))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
-
-  if (pago?.estado === 'aprobado') {
-    // DB ya lo tiene aprobado — sólo asegurarse de que el sitio esté en borrador
-    await db
-      .update(sitios)
-      .set({ estado: 'borrador', updatedAt: new Date() })
-      .where(eq(sitios.id, sitioId))
-    if (!session?.user) redirect(loginUrl)
-    redirect(wizardUrl)
-  }
-
-  if (pago?.flowToken) {
-    try {
-      const { apiKey, secretKey } = await getFlowCredentials()
-      if (apiKey && secretKey) {
-        const estadoFlow = await obtenerEstadoPago({
-          apiKey,
-          secretKey,
-          token: pago.flowToken,
+      try {
+        const res = await fetch('/api/pagos/verificar-pago-exitoso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sitioId }),
         })
+        const data = await res.json()
 
-        if (estadoFlow.status === 1) {
-          // Pago confirmado por Flow → marcar todo en DB
-          await Promise.all([
-            db.update(pagos)
-              .set({ estado: 'aprobado', updatedAt: new Date() })
-              .where(eq(pagos.id, pago.id)),
-            db.update(sitios)
-              .set({ estado: 'borrador', plan: sitio.plan as any, updatedAt: new Date() })
-              .where(eq(sitios.id, sitioId)),
-            db.update(usuarios)
-              .set({ plan: sitio.plan as any, updatedAt: new Date() })
-              .where(eq(usuarios.id, sitio.userId)),
-          ])
+        if (stoppedRef.current) return
 
-          if (!session?.user) redirect(loginUrl)
-          redirect(wizardUrl)
+        if (data.sinSesion) {
+          stoppedRef.current = true
+          const callbackUrl = encodeURIComponent(`/pago-exitoso/${sitioId}`)
+          router.replace(`/login?callbackUrl=${callbackUrl}`)
+          return
+        }
+
+        if (data.listo) {
+          stoppedRef.current = true
+          setMensaje('¡Pago confirmado! Redirigiendo al wizard...')
+          setTimeout(() => router.replace(`/dashboard/sitios/${sitioId}/configurar`), 1000)
+          return
+        }
+
+        if (data.yaGenerando) {
+          stoppedRef.current = true
+          setMensaje('Tu sitio ya está generándose...')
+          setTimeout(() => router.replace(`/dashboard/sitios/${sitioId}/generando`), 1000)
+          return
+        }
+
+        if (data.yaPublicado) {
+          stoppedRef.current = true
+          setMensaje('Tu sitio ya está publicado 🎉')
+          setTimeout(() => router.replace(`/dashboard/sitios/${sitioId}`), 1000)
+          return
+        }
+
+        if (count < 15) {
+          setMensaje(`Verificando con Flow... (${count}/15)`)
+          setTimeout(verificar, 2500)
+        } else {
+          stoppedRef.current = true
+          setError(
+            data.error
+              ? `Error: ${data.error}`
+              : 'El pago está siendo procesado. Puede tomar unos minutos en confirmarse.'
+          )
+          setMostrarBoton(true)
+        }
+      } catch {
+        if (!stoppedRef.current && count < 15) {
+          setTimeout(verificar, 2500)
+        } else if (!stoppedRef.current) {
+          stoppedRef.current = true
+          setError('No se pudo verificar el pago. Por favor, revisa tu correo de confirmación.')
+          setMostrarBoton(true)
         }
       }
-    } catch (err) {
-      console.error('[pago-exitoso] Error verificando Flow:', err)
     }
-  }
 
-  // Flow aún no confirmó (webhook tardío) — ir a esperar
-  if (!session?.user) redirect(loginUrl)
-  redirect(`/dashboard/sitios/${sitioId}/esperando-pago`)
+    verificar()
+
+    return () => {
+      stoppedRef.current = true
+    }
+  }, [sitioId, router])
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
+      <div className="bg-slate-800/60 backdrop-blur border border-slate-700 rounded-2xl p-10 max-w-md w-full text-center shadow-2xl">
+        {error ? (
+          <>
+            <AlertCircle className="w-14 h-14 text-amber-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-white mb-3">Pago en proceso</h1>
+            <p className="text-slate-300 mb-6 text-sm leading-relaxed">{error}</p>
+            {mostrarBoton && (
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => router.replace(`/dashboard/sitios/${sitioId}/configurar`)}
+                  className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-semibold transition-colors"
+                >
+                  Continuar de todas formas →
+                </button>
+                <button
+                  onClick={() => router.replace('/dashboard')}
+                  className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-sm transition-colors"
+                >
+                  Ir al dashboard
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex justify-center mb-6">
+              {intentos === 0 ? (
+                <CheckCircle2 className="w-14 h-14 text-violet-400 animate-pulse" />
+              ) : (
+                <Loader2 className="w-14 h-14 text-violet-400 animate-spin" />
+              )}
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-3">
+              {intentos === 0 ? '¡Pago recibido!' : 'Confirmando pago'}
+            </h1>
+            <p className="text-slate-300 text-sm">{mensaje}</p>
+            {intentos > 0 && (
+              <div className="mt-6 flex gap-1.5 justify-center">
+                {Array.from({ length: 15 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={"h-1.5 w-5 rounded-full transition-all duration-300 " +
+                      (i < intentos ? "bg-violet-500" : "bg-slate-700")}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
 }

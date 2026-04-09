@@ -45,6 +45,7 @@ function GenerandoContent() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const terminalRef = useRef<HTMLDivElement>(null)
   const lastChunkTimeRef = useRef<number>(Date.now())
+  const startedAtRef = useRef<number>(Date.now())
 
   // Restaurar progreso de sessionStorage al montar (persiste entre navegaciones).
   // Esto corre antes de que llegue el catchup del SSE, evitando el salto visual de 0%.
@@ -83,10 +84,14 @@ function GenerandoContent() {
     if (estado !== 'generando') return
     const check = setInterval(() => {
       if (completedRef.current) return
-      if (charsRef.current < 500) return // aún no ha empezado
       const sinceChunk = Date.now() - lastChunkTimeRef.current
-      if (sinceChunk < 8000) return // chunks recientes — esperar
-      // Han pasado 8s sin chunks: Claude terminó, DB guardado, done se perdió
+      const sinceStart = Date.now() - startedAtRef.current
+      // Condición normal: había chunks pero dejaron de llegar por 8s
+      const chunksParados = charsRef.current >= 500 && sinceChunk > 8_000
+      // Condición timeout: llevamos 90s sin ningún chunk (Claude no respondió / error silencioso)
+      const timeoutTotal = sinceStart > 90_000
+      if (!chunksParados && !timeoutTotal) return
+      // Consultar DB para ver si terminó o tiene error
       fetch(`/api/sitios/${sitioId}`)
         .then(r => r.json())
         .then(({ sitio: s }) => {
@@ -99,6 +104,11 @@ function GenerandoContent() {
           } else if (s?.estado === 'error') {
             completedRef.current = true
             setErrorMsg('El servidor encontró un error al guardar el sitio.')
+            setEstado('error')
+          } else if (timeoutTotal && charsRef.current === 0) {
+            // 90s y Claude nunca respondió → error visible
+            completedRef.current = true
+            setErrorMsg('Claude no respondió en el tiempo esperado. Por favor intenta de nuevo.')
             setEstado('error')
           }
         })
