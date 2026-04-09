@@ -81,6 +81,12 @@ export function SitioCard({ sitio }: SitioCardProps) {
   const [showDomainGuide, setShowDomainGuide] = useState(false)
   const [copiedText, setCopiedText] = useState('')
 
+  // Si lleva más de 15 min generando, considerarlo atascado
+  const TIMEOUT_GENERANDO_MS = 15 * 60 * 1000
+  const estaAtascado =
+    sitio.estado === 'generando' &&
+    Date.now() - new Date(sitio.updatedAt ?? sitio.createdAt).getTime() > TIMEOUT_GENERANDO_MS
+
   // Polling automático cuando el sitio está generando en background
   useEffect(() => {
     if (sitio.estado !== 'generando') return
@@ -184,6 +190,15 @@ export function SitioCard({ sitio }: SitioCardProps) {
               {reanudando ? 'Iniciando...' : 'Pagar ahora →'}
             </button>
           ) : sitio.estado === 'generando' ? (
+            estaAtascado ? (
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border bg-red-500/10 border-red-500/20 text-red-400"
+                title="La generación tardó demasiado. Contacta soporte."
+              >
+                <AlertCircle className="w-3 h-3" />
+                Error al generar
+              </div>
+            ) : (
             <Link
               href={`/dashboard/sitios/${sitio.id}/generando`}
               onClick={e => e.stopPropagation()}
@@ -195,6 +210,7 @@ export function SitioCard({ sitio }: SitioCardProps) {
               <Loader2 className="w-3 h-3 animate-spin" />
               Ver progreso →
             </Link>
+            )
           ) : (
             <div className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border',

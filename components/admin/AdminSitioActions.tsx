@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { RefreshCw, Trash2, MoreVertical, Eye } from 'lucide-react'
+import { RefreshCw, Trash2, MoreVertical, Eye, RotateCcw } from 'lucide-react'
 
 interface AdminSitioActionsProps {
   sitioId: string
@@ -21,6 +21,18 @@ export function AdminSitioActions({ sitioId, estado }: AdminSitioActionsProps) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sitioId, accion: 'regenerar' }),
+    })
+    setLoading(false)
+    router.refresh()
+  }
+
+  async function resetear() {
+    setLoading(true)
+    setOpen(false)
+    await fetch('/api/admin/sitios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sitioId, accion: 'resetear' }),
     })
     setLoading(false)
     router.refresh()
@@ -51,6 +63,15 @@ export function AdminSitioActions({ sitioId, estado }: AdminSitioActionsProps) {
                 <Eye className="w-3.5 h-3.5" />
                 Ver sitio
               </a>
+              {estado === 'generando' && (
+                <button
+                  onClick={resetear}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-white/10 text-amber-400 transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Resetear estado
+                </button>
+              )}
               <button
                 onClick={regenerar}
                 disabled={estado === 'generando'}
