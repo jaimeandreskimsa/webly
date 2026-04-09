@@ -55,9 +55,15 @@ export async function POST(req: NextRequest) {
       if (apiKey && secretKey) {
         try {
           const estadoFlow = await obtenerEstadoPago({ apiKey, secretKey, token: flowToken })
+          console.log(`[verificar-pago-exitoso] flowToken=${flowToken.slice(0,8)}… status=${estadoFlow.status} sitio=${sitioId}`)
 
-          if (estadoFlow.status === 1) {
-            // Pago aprobado → buscar o crear registro en pagos y actualizar sitio
+          if (estadoFlow.status === 1 || estadoFlow.status === 2) {
+            // status=1: pagado ✅
+            // status=2: pendiente (transferencia, Webpay async, etc.) — el usuario
+            //           COMPLETÓ el proceso en Flow, la confirmación llega por webhook.
+            //           Lo dejamos pasar al wizard; el webhook actualizará el DB.
+            const estadoPago = estadoFlow.status === 1 ? 'aprobado' : 'pendiente'
+
             const [pagoExistente] = await db
               .select()
               .from(pagos)
@@ -68,16 +74,15 @@ export async function POST(req: NextRequest) {
               pagoExistente
                 ? db
                     .update(pagos)
-                    .set({ estado: 'aprobado', updatedAt: new Date() })
+                    .set({ estado: estadoPago as any, updatedAt: new Date() })
                     .where(eq(pagos.id, pagoExistente.id))
                 : db.insert(pagos).values({
                     userId: sitio.userId,
                     flowToken,
                     flowOrder: `${sitioId}|${sitio.userId}|${sitio.plan}|en`,
                     plan: sitio.plan as any,
-                    // El monto real está en estadoFlow.amount si la propiedad existe
                     monto: (estadoFlow as any).amount ?? 1000,
-                    estado: 'aprobado',
+                    estado: estadoPago as any,
                     metadata: { sitioId, source: 'urlReturn-token' },
                   }),
               db
@@ -93,12 +98,45 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ listo: true })
           }
 
-          // status 2 = pendiente, 3 = rechazado, 4 = anulado
-          // No retornamos error aquí — caemos al flujo normal de DB por si acaso
-          console.log(`[verificar-pago-exitoso] flowToken status=${estadoFlow.status}, esperando...`)
-        } catch (flowErr) {
-          console.error('[verificar-pago-exitoso] Error consultando Flow con token directo:', flowErr)
-          // Caemos al flujo normal por si el error es transitorio
+          if (estadoFlow.status === 3 || estadoFlow.status === 4) {
+            // Rechazado o anulado — no dejar pasar
+            console.log(`[verificar-pago-exitoso] Pago rechazado/anulado status=${estadoFlow.status}`)
+            return NextResponse.json({ aprobado: false, rechazado: true, error: 'Pago rechazado o anulado en Flow' })
+          }
+
+          // Status desconocido — caer al flujo normal
+          console.log(`[verificar-pago-exitoso] Status desconocido=${estadoFlow.status}, continuando con DB…`)
+        } catch (flowErr: any) {
+          console.error('[verificar-pago-exitoso] Error consultando Flow con token directo:', flowErr?.message)
+          // Si Flow falla pero el token está en nuestra DB (lo creamos en crear-express),
+          // es una transacción legítima — dejar pasar al wizard.
+          const [pagoEnDB] = await db
+            .select()
+            .from(pagos)
+            .where(eq(pagos.flowToken, flowToken))
+            .limit(1)
+          if (pagoEnDB) {
+            console.log(`[verificar-pago-exitoso] Flow falló pero token en DB — dejando pasar sitio=${sitioId}`)
+            await Promise.all([
+              db.update(sitios).set({ estado: 'borrador', updatedAt: new Date() }).where(eq(sitios.id, sitioId)),
+              db.update(usuarios).set({ plan: sitio.plan as any, updatedAt: new Date() }).where(eq(usuarios.id, sitio.userId)),
+            ])
+            return NextResponse.json({ listo: true })
+          }
+        }
+      } else {
+        // Sin credenciales — si el token está en DB (lo registramos en crear-express) → dejar pasar
+        const [pagoEnDB] = await db
+          .select()
+          .from(pagos)
+          .where(eq(pagos.flowToken, flowToken))
+          .limit(1)
+        if (pagoEnDB) {
+          await Promise.all([
+            db.update(sitios).set({ estado: 'borrador', updatedAt: new Date() }).where(eq(sitios.id, sitioId)),
+            db.update(usuarios).set({ plan: sitio.plan as any, updatedAt: new Date() }).where(eq(usuarios.id, sitio.userId)),
+          ])
+          return NextResponse.json({ listo: true })
         }
       }
     }
@@ -156,11 +194,14 @@ export async function POST(req: NextRequest) {
       token: pago.flowToken,
     })
 
-    if (estadoFlow.status === 1) {
-      // Pago confirmado — actualizar todo en paralelo
+    console.log(`[verificar-pago-exitoso] DB flow: token=${pago.flowToken.slice(0,8)}… status=${estadoFlow.status}`)
+
+    if (estadoFlow.status === 1 || estadoFlow.status === 2) {
+      // status=1: confirmado, status=2: pendiente (async — webhook confirmará)
+      const estadoPago = estadoFlow.status === 1 ? 'aprobado' : 'pendiente'
       await Promise.all([
         db.update(pagos)
-          .set({ estado: 'aprobado', updatedAt: new Date() })
+          .set({ estado: estadoPago as any, updatedAt: new Date() })
           .where(eq(pagos.id, pago.id)),
         db.update(sitios)
           .set({ estado: 'borrador', plan: sitio.plan as any, updatedAt: new Date() })
@@ -172,8 +213,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ listo: true })
     }
 
-    // Flow aún no confirmó (status !== 1)
-    return NextResponse.json({ aprobado: false })
+    // status=3 rechazado, status=4 anulado
+    return NextResponse.json({ aprobado: false, rechazado: estadoFlow.status >= 3 })
   } catch (err: any) {
     console.error('[verificar-pago-exitoso]', err)
     return NextResponse.json({ aprobado: false, error: err?.message ?? 'Error interno' })
