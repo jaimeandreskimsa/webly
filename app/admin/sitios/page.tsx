@@ -91,6 +91,7 @@ export default async function AdminSitiosPage({
                 <th className="text-left px-5 py-3.5 text-slate-400 font-medium">Plan</th>
                 <th className="text-left px-5 py-3.5 text-slate-400 font-medium">Estado</th>
                 <th className="text-left px-5 py-3.5 text-slate-400 font-medium">Deploy URL</th>
+                <th className="text-left px-5 py-3.5 text-slate-400 font-medium">Ediciones</th>
                 <th className="text-left px-5 py-3.5 text-slate-400 font-medium">Creado</th>
                 <th className="px-5 py-3.5"></th>
               </tr>
@@ -137,6 +138,20 @@ export default async function AdminSitiosPage({
                     ) : (
                       <span className="text-xs text-slate-600">Sin deploy</span>
                     )}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {(() => {
+                      const usadas = Math.max(0, (s.totalEdiciones ?? 1) - 1)
+                      return (
+                        <span className={`text-xs font-mono font-medium ${
+                          usadas === 0 ? 'text-slate-500' :
+                          usadas >= 4 ? 'text-red-400' :
+                          'text-emerald-400'
+                        }`}>
+                          {usadas} usada{usadas !== 1 ? 's' : ''}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td className="px-5 py-3.5 text-slate-500 text-xs">{formatFecha(s.createdAt as Date)}</td>
                   <td className="px-5 py-3.5">
