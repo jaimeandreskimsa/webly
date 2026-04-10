@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     errorCorrectionLevel: 'H',
   })
 
-  return new NextResponse(buffer, {
+  return new NextResponse(buffer as unknown as BodyInit, {
     headers: {
       'Content-Type': 'image/png',
       'Content-Disposition': `inline; filename="qr-carta-${sitio.slug || 'restaurante'}.png"`,
