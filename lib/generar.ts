@@ -198,7 +198,7 @@ export async function generarEnBackground(sitioId: string, datos: DatosWizard): 
 
 async function runWatchdog() {
   try {
-    const umbral = new Date(Date.now() - 3 * 60 * 1000) // > 3 min sin cambio
+    const umbral = new Date(Date.now() - 10 * 60 * 1000) // > 10 min sin cambio
     const atascados = await db
       .select()
       .from(sitios)
