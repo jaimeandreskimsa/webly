@@ -2,17 +2,34 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { RefreshCw, Trash2, MoreVertical, Eye, RotateCcw } from 'lucide-react'
+import { RefreshCw, Trash2, MoreVertical, Eye, RotateCcw, Zap } from 'lucide-react'
 
 interface AdminSitioActionsProps {
   sitioId: string
   estado: string
+  totalEdiciones?: number
 }
 
-export function AdminSitioActions({ sitioId, estado }: AdminSitioActionsProps) {
+export function AdminSitioActions({ sitioId, estado, totalEdiciones }: AdminSitioActionsProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  async function darEdiciones(cantidad: number) {
+    setLoading(true)
+    setOpen(false)
+    const res = await fetch('/api/admin/sitios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sitioId, accion: 'dar_ediciones', valor: cantidad }),
+    })
+    setLoading(false)
+    if (res.ok) {
+      const data = await res.json()
+      alert(`✅ ${data.edicionesOtorgadas} ediciones otorgadas`)
+    }
+    router.refresh()
+  }
 
   async function regenerar() {
     setLoading(true)
@@ -83,6 +100,13 @@ export function AdminSitioActions({ sitioId, estado }: AdminSitioActionsProps) {
               >
                 <RefreshCw className="w-3.5 h-3.5 text-indigo-400" />
                 Regenerar con IA
+              </button>
+              <button
+                onClick={() => darEdiciones(10)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-white/10 text-emerald-400 transition-colors"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                +10 ediciones
               </button>
             </div>
           </div>

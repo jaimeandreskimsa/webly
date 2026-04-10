@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const { sitioId, accion } = await req.json()
+  const { sitioId, accion, valor } = await req.json()
 
   if (accion === 'regenerar') {
     const [sitio] = await db.select().from(sitios).where(eq(sitios.id, sitioId)).limit(1)
@@ -32,6 +32,22 @@ export async function POST(req: NextRequest) {
       .update(sitios)
       .set({ estado: 'borrador', updatedAt: new Date() })
       .where(eq(sitios.id, sitioId))
+  }
+
+  if (accion === 'dar_ediciones') {
+    // valor: número de ediciones a dar (ej. 10)
+    // Fórmula: edicionesUsadas = max(0, totalEdiciones - 1)
+    // Para dar N ediciones: nuevoTotal = totalEdiciones_actual - N
+    // → usadas decrementan en N efectivamente
+    const cantidad = typeof valor === 'number' ? valor : 10
+    const [sitio] = await db.select({ totalEdiciones: sitios.totalEdiciones }).from(sitios).where(eq(sitios.id, sitioId)).limit(1)
+    if (!sitio) return NextResponse.json({ error: 'Sitio no encontrado' }, { status: 404 })
+    const nuevoTotal = (sitio.totalEdiciones ?? 1) - cantidad
+    await db
+      .update(sitios)
+      .set({ totalEdiciones: nuevoTotal, updatedAt: new Date() })
+      .where(eq(sitios.id, sitioId))
+    return NextResponse.json({ ok: true, edicionesOtorgadas: cantidad, nuevoTotal })
   }
 
   return NextResponse.json({ ok: true })
