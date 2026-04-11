@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MoreVertical, Shield, UserX, UserCheck, Zap, Trash2 } from 'lucide-react'
+import { MoreVertical, Shield, UserX, UserCheck, Zap, Trash2, KeyRound } from 'lucide-react'
 import type { Usuario } from '@/lib/db/schema'
 
 interface AdminUsuarioActionsProps {
@@ -14,6 +14,20 @@ export function AdminUsuarioActions({ usuario }: AdminUsuarioActionsProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [confirmarEliminar, setConfirmarEliminar] = useState(false)
+  const [nuevaPass, setNuevaPass] = useState<string | null>(null)
+
+  async function resetearPassword() {
+    setLoading(true)
+    setOpen(false)
+    const res = await fetch(`/api/admin/usuarios/${usuario.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accion: 'resetear_password' }),
+    })
+    const data = await res.json()
+    setLoading(false)
+    if (data.nuevaPassword) setNuevaPass(data.nuevaPassword)
+  }
 
   async function ejecutarAccion(accion: string, valor?: string) {
     setLoading(true)
@@ -83,6 +97,15 @@ export function AdminUsuarioActions({ usuario }: AdminUsuarioActionsProps) {
 
               <div className="border-t border-white/5 my-1" />
               <button
+                onClick={resetearPassword}
+                className="w-full text-left px-3 py-2 text-sm rounded-lg transition-colors hover:bg-amber-500/10 text-amber-400 flex items-center gap-2"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                Resetear contraseña
+              </button>
+
+              <div className="border-t border-white/5 my-1" />
+              <button
                 onClick={() => ejecutarAccion('toggle_activo')}
                 className="w-full text-left px-3 py-2 text-sm rounded-lg transition-colors hover:bg-red-500/10 text-slate-300 hover:text-red-400 flex items-center gap-2"
               >
@@ -124,6 +147,28 @@ export function AdminUsuarioActions({ usuario }: AdminUsuarioActionsProps) {
             </div>
           </div>
         </>
+      )}
+
+      {/* Modal nueva contraseña */}
+      {nuevaPass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setNuevaPass(null)}>
+          <div className="bg-[#111827] border border-white/10 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-white font-bold mb-1">Contraseña reseteada ✅</h3>
+            <p className="text-slate-400 text-sm mb-4">Comparte esta contraseña temporal con el usuario:</p>
+            <div className="flex items-center gap-2 bg-white/5 rounded-xl px-4 py-3 mb-4">
+              <span className="font-mono text-xl text-indigo-300 flex-1 tracking-widest">{nuevaPass}</span>
+              <button
+                onClick={() => { navigator.clipboard.writeText(nuevaPass); }}
+                className="text-xs text-slate-400 hover:text-white transition-colors"
+              >Copiar</button>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">Esta ventana es la única vez que se muestra.</p>
+            <button
+              onClick={() => setNuevaPass(null)}
+              className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors"
+            >Cerrar</button>
+          </div>
+        </div>
       )}
     </div>
   )

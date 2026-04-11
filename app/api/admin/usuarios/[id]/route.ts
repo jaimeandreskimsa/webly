@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { db, usuarios, sitios } from '@/lib/db'
 import { eq } from 'drizzle-orm'
+import bcrypt from 'bcryptjs'
 
 async function verificarAdmin(req: NextRequest) {
   const session = await auth()
@@ -54,6 +55,16 @@ export async function PATCH(
         .set({ rol: valor as any, updatedAt: new Date() })
         .where(eq(usuarios.id, userId))
       break
+
+    case 'resetear_password': {
+      const nuevaPass = Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6).toUpperCase()
+      const hash = await bcrypt.hash(nuevaPass, 12)
+      await db
+        .update(usuarios)
+        .set({ password: hash, updatedAt: new Date() })
+        .where(eq(usuarios.id, userId))
+      return NextResponse.json({ ok: true, nuevaPassword: nuevaPass })
+    }
 
     case 'toggle_activo':
       await db
